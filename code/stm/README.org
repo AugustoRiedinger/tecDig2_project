@@ -4,6 +4,9 @@
 
 * Índice :toc:
 - [[#sobre-el-proyecto][Sobre el proyecto:]]
+- [[#satdac][SATDAC:]]
+  - [[#librerias-utilizadas][Librerias utilizadas:]]
+  - [[#main][Main:]]
 
 * Sobre el proyecto:
 
@@ -28,3 +31,28 @@ Y la ERDYTC las siguientes:
  + Ingreso de comandos por usuario y transmisión de los mismos.
  + Almacenamiento en memoria externa.
  + Recepción y transmisión de datos por RF.
+* SATDAC:
+
+Aquí realizat una descripción más detallada del SATDAC, poner fotos de placas, prototipo físico terminado, etc.
+
+** Librerias utilizadas:
+
+Aquí se muestran las librerías utilizadas en el diseño del sistema.
+
+ + La librería estándar con las funciones y códigos básicos para microcontroladores STM32F4XX:
+
+#+begin_src C
+#include "stm32f4xx.h"
+#+end_src
+
+ + La libreía para el control de pines analógicos:
+** Main:
+
+#+begin_src C
+int main(void)
+{
+  while (1)
+  {
+  }
+}
+#+end_src
