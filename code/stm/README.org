@@ -7,4 +7,24 @@
 
 * Sobre el proyecto:
 
-El objetivo del proyecto
+El objetivo del proyecto es construir la base lógica digital inicial, como *prueba de concepto*, para aplicación en un CubeSat.
+
+CubeSat es un estándar de diseño de nanosatélites, cuya estructura es escalable en cubos de 10 cm de arista y masa inferior a 1,33 kg. La premisa de este trabajo se basa en el diseño de un sistema de adquisición y transmisión de datos según el MCU STM32F4-BlackPill y en una estación de recepción de datos y transmisión de comandos según el MCU STM32F429ZI.
+
+Esto es, el proyecto se divide en dos sistemas que trabajan de forma codependiente pero que son controlados por microcontroladores distintos:
+
+ + Uno es el SATDAC (Sistema de Adquisicón y Transmisión de Datos Autosuficiente y Controlable), que estaría ubicado dentro del hipotético CubeSat.
+ + Otro es el ERDYTC (Estación de Recepción de Datos Y Transmisión de Comandos), que se encontraría fuera del CubeSat.
+
+El SATDAC posee las siguientes capacidades:
+
+ + Sensado de temperatura.
+ + Control y despliegue de periféricos por comando.
+ + Recepción y transmisión de datos por RF.
+
+Y la ERDYTC las siguientes:
+
+ + Capacidad para mostrar datos recibidos y estados en LCD.
+ + Ingreso de comandos por usuario y transmisión de los mismos.
+ + Almacenamiento en memoria externa.
+ + Recepción y transmisión de datos por RF.
