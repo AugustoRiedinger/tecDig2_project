@@ -1,0 +1,10 @@
+#+TITLE: Sistema de adquisición de datos y lógica digital base para implementación en CubeSats
+#+AUTHOR: A. Riedinger & G. Garcia
+#+PROPERTY: :header-args :tangle src/main.c
+
+* Índice :toc:
+- [[#sobre-el-proyecto][Sobre el proyecto:]]
+
+* Sobre el proyecto:
+
+El objetivo del proyecto
