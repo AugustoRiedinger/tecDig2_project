@@ -1,11 +1,13 @@
 #+TITLE: Sistema de adquisición de datos y lógica digital base para implementación en CubeSats
 #+AUTHOR: A. Riedinger & G. Garcia
-#+PROPERTY: :header-args :tangle src/main.c
+#+PROPERTY: header-args :tangle src/main.c
 
 * Índice :toc:
 - [[#sobre-el-proyecto][Sobre el proyecto:]]
 - [[#satdac][SATDAC:]]
   - [[#librerias-utilizadas][Librerias utilizadas:]]
+  - [[#estructuras][Estructuras:]]
+  - [[#definición-de-constantes][Definición de constantes:]]
   - [[#main][Main:]]
 
 * Sobre el proyecto:
@@ -33,19 +35,98 @@ Y la ERDYTC las siguientes:
  + Recepción y transmisión de datos por RF.
 * SATDAC:
 
-Aquí realizat una descripción más detallada del SATDAC, poner fotos de placas, prototipo físico terminado, etc.
+Aquí realizar una descripción más detallada del SATDAC, poner fotos de placas, prototipo físico terminado, etc.
 
 ** Librerias utilizadas:
 
 Aquí se muestran las librerías utilizadas en el diseño del sistema.
 
- + La librería estándar con las funciones y códigos básicos para microcontroladores STM32F4XX:
+ + Librería estándar, con las funciones y códigos básicos para microcontroladores STM32F4XX:
 
 #+begin_src C
 #include "stm32f4xx.h"
+#include "stm32f4xx_gpio.h"
+#include "stdio.h"
+#include "misc.h"
 #+end_src
 
- + La libreía para el control de pines analógicos:
+ + Librería para el control del CLOCK del MCU:
+
+#+begin_src C
+#include "stm32f4xx_rcc.h"
+#+end_src
+
+ + Libreía para el control de pines analógicos:
+
+#+begin_src C
+#include "stm32f4xx_adc.h"
+#+end_src
+
+ + Libreía para el control de TIMERS:
+
+#+begin_src C
+#include "stm32f4xx_tim.h"
+#+end_src
+
+ + Libería para habilitar funciones matemáticas, como /pow()/:
+
+#+begin_src C
+#include "math.h"
+#+end_src
+** Estructuras:
+
+En esta sección se declaran las diferentes estructuras utilizadas para la configuración de pines del MCU.
+
+*** General:
+
+La siguiente es la estructura para configuración de pines como salidas digitales:
+
+#+begin_src C
+GPIO_InitTypeDef    GPIO_InitStructure;
+#+end_src
+
+La siguiente es la estructura para la configuración y habilitación de interrupciones (por vencimiento de cuenta de TIMER, por DMA, etc.):
+
+#+begin_src C
+NVIC_InitTypeDef    NVIC_InitStructure;
+#+end_src
+
+La siguiente estructura se utiliza para configurar interrupciones externas; principalmente utilizada para interrupir según el estado de una entrada digital (pulsador, etc.):
+
+#+begin_src C
+EXTI_InitTypeDef   EXTI_InitStructure;
+#+end_src
+
+*** ADC:
+
+Se definen las estructuras para inicializar pines como convertores analógico/digital:
+
+#+begin_src C
+ADC_InitTypeDef         ADC_InitStructure;
+ADC_CommonInitTypeDef   ADC_CommonInitStructure;
+#+end_src
+*** TIMERS:
+
+Las siguientes estructuras se utilizan en la configuración de TIMERS del MCU:
+
+#+begin_src C
+TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+TIM_OCInitTypeDef       TIM_OCInitStructure;
+#+end_src
+
+*** DMA:
+
+La siguiente estructura se utiliza en la configuración y habilitación de la funcionalidad de DMA (/Acceso Directo a Memoria/):
+
+#+begin_src C
+DMA_InitTypeDef     DMA_InitStructure;
+#+end_src
+
+** Definición de constantes:
+En esta sección se definen constantes a utilizar en el resto del código.
+
+*** Control del servomotor:
+
 ** Main:
 
 #+begin_src C
