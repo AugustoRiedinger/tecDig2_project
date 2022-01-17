@@ -25,8 +25,9 @@ TIM_OCInitTypeDef       TIM_OCInitStructure;
 
 DMA_InitTypeDef     DMA_InitStructure;
 
-#define _servo  GPIOG
+#define _servo  GPIOA
 #define servo   GPIO_Pin_3
+#define __servo GPIO_PinSource3
 
 #define  TLCD_INIT_PAUSE        100000
 #define  TLCD_PAUSE             50000
@@ -82,6 +83,8 @@ void INIT_TIMPWM(void);
 
 void INIT_PWM(void);
 
+void INIT_SERVO(void);
+
 void MOVE_SERVO(void);
 
 int main(void)
@@ -122,4 +125,19 @@ TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCycle) / 100 - 1;
 
 TIM_OC1Init(TIM4, &TIM_OCStruct);
 TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
+}
+
+void INIT_SERVO(void){
+GPIO_InitTypeDef GPIO_InitStruct;
+
+RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+GPIO_PinAFConfig(_servo, __servo, GPIO_AF_TIM4);
+
+GPIO_InitStruct.GPIO_Pin = servo;
+GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+GPIO_Init(GPIOD, &GPIO_InitStruct);
 }

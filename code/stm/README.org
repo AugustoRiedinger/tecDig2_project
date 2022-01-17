@@ -134,8 +134,9 @@ Aquí se definen como constantes los pines que se utilizarán en el hardware.
 **** Servomotor:
 
 #+begin_src C
-#define _servo  GPIOG
+#define _servo  GPIOA
 #define servo   GPIO_Pin_3
+#define __servo GPIO_PinSource3
 #+end_src
 
 *** LCD:
@@ -253,6 +254,15 @@ void INIT_PWM(void);
 #+end_src
 
 *** Servomotor:
+
+Función para inicializar la salida del servomotor como PWM:
+
+ + *Returns*: void.
+ + *Params* : void.
+
+#+begin_src C
+void INIT_SERVO(void);
+#+end_src
 
 Función para iniciar el proceso de movimiento del servomotor.
 
@@ -383,5 +393,41 @@ Finalmente se carga la incialización a la estructura:
 #+begin_src C
 TIM_OC1Init(TIM4, &TIM_OCStruct);
 TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
+}
+#+end_src
+*** Servomotor:
+
+Aquí se describen las funciones relacionadas con el funcionamiento del servomotor.
+
+**** Inicialización:
+
+Esta función inicializa la salida correspondiente al servo con soporte para PWM disparado según el TIM4:
+
+#+begin_src C
+void INIT_SERVO(void){
+GPIO_InitTypeDef GPIO_InitStruct;
+#+end_src
+
+Se habilita el clock para el puerto donde estará la salida PWM (GPIOA - Pin 3):
+
+#+begin_src C
+RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+#+end_src
+
+Configuración de la función alternante PWM disparada por el TIM4 para el pin correspondiente al servo:
+
+#+begin_src C
+GPIO_PinAFConfig(_servo, __servo, GPIO_AF_TIM4);
+#+end_src
+
+Se setea el pin finalmente y se carga en la estructura:
+
+#+begin_src C
+GPIO_InitStruct.GPIO_Pin = servo;
+GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 #+end_src
