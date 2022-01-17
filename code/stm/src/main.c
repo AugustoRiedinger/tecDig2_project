@@ -25,6 +25,9 @@ TIM_OCInitTypeDef       TIM_OCInitStructure;
 
 DMA_InitTypeDef     DMA_InitStructure;
 
+#define _servo  GPIOG
+#define servo   GPIO_Pin_3
+
 #define  TLCD_INIT_PAUSE        100000
 #define  TLCD_PAUSE             50000
 #define  TLCD_CLK_PAUSE         1000
@@ -68,6 +71,10 @@ typedef struct {
   const uint32_t TLCD_CLK;
   BitAction TLCD_INIT;
 }LCD_2X16_t;
+
+void INIT_TIM3(uint32_t freq);
+
+void MOVE_SERVO(void);
 
 int main(void)
 {

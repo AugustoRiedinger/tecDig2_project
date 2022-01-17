@@ -8,6 +8,7 @@
   - [[#librerias-utilizadas][Librerias utilizadas:]]
   - [[#estructuras][Estructuras:]]
   - [[#definición-de-constantes][Definición de constantes:]]
+  - [[#definición-de-funciones-locales][Definición de funciones locales:]]
   - [[#main][Main:]]
 
 * Sobre el proyecto:
@@ -125,6 +126,17 @@ DMA_InitTypeDef     DMA_InitStructure;
 ** Definición de constantes:
 En esta sección se definen constantes a utilizar en el resto del código.
 
+*** Hardware:
+
+Aquí se definen como constantes los pines que se utilizarán en el hardware.
+
+**** Servomotor:
+
+#+begin_src C
+#define _servo  GPIOG
+#define servo   GPIO_Pin_3
+#+end_src
+
 *** LCD:
 
 Aquí se definen distintas constantes que se utilizan en las funciones de control del LCD:
@@ -191,7 +203,30 @@ typedef struct {
 }LCD_2X16_t;
 #+end_src
 
-*** Control del servomotor:
+** Definición de funciones locales:
+
+En esta sección se definen las distintas funciones a utilizar en el código local.
+
+*** TIMERS:
+
+Función para incializar el TIM3 del MCU con una determinada frecuencia.
+
+ + *Returns*: void.
+ + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
+
+#+begin_src C
+void INIT_TIM3(uint32_t freq);
+#+end_src
+*** Servomotor:
+
+Función para iniciar el proceso de movimiento del servomotor.
+
+ + *Returns*: void.
+ + *Params* : void.
+
+#+begin_src C
+void MOVE_SERVO(void);
+#+end_src
 
 ** Main:
 
