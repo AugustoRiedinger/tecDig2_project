@@ -89,6 +89,15 @@ void MOVE_SERVO(void);
 
 int main(void)
 {
+
+SystemInit();
+
+INIT_TIMPWM();
+
+INIT_PWM();
+
+INIT_SERVO();
+
   while (1)
   {
   }

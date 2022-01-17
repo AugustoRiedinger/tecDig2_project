@@ -275,9 +275,49 @@ void MOVE_SERVO(void);
 
 ** Main:
 
+En esta sección se encuentra la sección principal del código donde se inicializa y se llama a las funciones.
+
 #+begin_src C
 int main(void)
 {
+#+end_src
+
+*** Inicialización:
+
+En esta sección se inicializan las diferentes componentes del código. Este el procesamiento inicial que se realiza cuando se enciende el sistema.
+
+Primeramente, se iniciliza el sistema según:
+
+#+begin_src C
+SystemInit();
+#+end_src
+
+**** TIMERS:
+
+Inicialización del TIM4 para el control del tiempo del PWM:
+
+#+begin_src C
+INIT_TIMPWM();
+#+end_src
+
+Inicialización del PWM:
+
+#+begin_src C
+INIT_PWM();
+#+end_src
+**** Servomotor:
+
+Se inicializa el servomotor a la frecuencia /freqPWM/ establecida y con el /dutyCyclePWM/ seteado:
+
+#+begin_src C
+INIT_SERVO();
+#+end_src
+
+*** Bucle pincipal:
+
+Esta sección muestra el bucle principal infinito del código:
+
+#+begin_src C
   while (1)
   {
   }
