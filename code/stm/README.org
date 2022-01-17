@@ -208,7 +208,13 @@ typedef struct {
 Frecuencia del PWM en Hz que controlorá el servomotor:
 
 #+begin_src C
-#define freqServo 10e3
+#define freqPWM 10e3
+#+end_src
+
+Ciclo de trabajo que definará la onda de salida PWM:
+
+#+begin_src C
+#define dutyCyclePWM 50
 #+end_src
 
 ** Definición de funciones locales:
@@ -231,10 +237,19 @@ void INIT_TIM3(uint32_t freq);
 Función para inicializar el TIM4 para el control de la salida PWM necesaria para el control del servomotor:
 
  + *Returns*: void.
- + *Params* : freqPWM - Frecuencia del PWM a la que se incializará el TIM4.
+ + *Params* : void.
 
 #+begin_src C
-void INIT_TIMPWM(uint32_t freqPWM);
+void INIT_TIMPWM(void);
+#+end_src
+
+Función para inicializar las salidas PWM4:
+
+ + *Returns*: void.
+ + *Params* : void.
+
+#+begin_src C
+void INIT_PWM(void);
 #+end_src
 
 *** Servomotor:
@@ -268,12 +283,12 @@ En esta sección se implementan las diferentes funciones del código.
 
 Este es el TIMER utilizado para el control de la salida PWM.
 
-***** Inicialización:
+***** Inicialización del TIMER:
 
 Aquí se inicializa el TIMER para setear la frecuencia inicial del PWM.
 
 #+begin_src C
-void INIT_TIMPWM(uint32_t freqPWM){
+void INIT_TIMPWM(void){
 TIM_TimeBaseInitTypeDef TIM_BaseStruct;
 #+end_src
 
@@ -283,7 +298,7 @@ En principio, se habilita el clock para el TIM4; el cual está conectado al bus 
 RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 #+end_src
 
-En este caso, como se quiere que la frecuencia del TIM sea la máxima, se setará el prescaler en cero:
+En este caso, como se quiere que la frecuencia del TIM sea la máxima, se seteará el prescaler en cero:
 
 #+begin_src C
 TIM_BaseStruct.TIM_Prescaler = 0;
@@ -326,5 +341,47 @@ Finalmente, se carga la inicialización en la estructura del timer y se comienza
 #+begin_src C
 TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
 TIM_Cmd(TIM4, ENABLE);
+}
+#+end_src
+***** Inicialización de las salidas PWM4:
+
+Esta función setea los canales PWM a las salidas PWM del servo.
+
+#+begin_src C
+void INIT_PWM(void){
+TIM_OCInitTypeDef TIM_OCStruct;
+#+end_src
+
+Primero, se setea el PWM en modo 2, lo que indica que la señal se generará comenzando en estado bajo. Luego, se habilitan las salidas PWM y se indica la polaridad:
+
+#+begin_src C
+TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
+TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
+TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
+#+end_src
+
+Ahora, para calcular el duty cycle de la señal:
+
+ + pulseLength = ((TIM_Period + 1)*dutyCycle) / 100 - 1
+
+donde dutyCycle está en porcentaje, entre 0% y 100%.
+
+Por tanto, se crea una variable para calcular el periódo de trabajo del TIM4:
+
+#+begin_src C
+uint32_t TIM_Period = SystemCoreClock / freqPWM - 1;
+#+end_src
+
+Y entonces a partir de la misma se puede establecer el duty cycle del PWM:
+
+#+begin_src C
+TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCycle) / 100 - 1;
+#+end_src
+
+Finalmente se carga la incialización a la estructura:
+
+#+begin_src C
+TIM_OC1Init(TIM4, &TIM_OCStruct);
+TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
 }
 #+end_src

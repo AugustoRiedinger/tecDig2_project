@@ -72,11 +72,15 @@ typedef struct {
   BitAction TLCD_INIT;
 }LCD_2X16_t;
 
-#define freqServo 10e3
+#define freqPWM 10e3
+
+#define dutyCyclePWM 50
 
 void INIT_TIM3(uint32_t freq);
 
-void INIT_TIMPWM(uint32_t freqPWM);
+void INIT_TIMPWM(void);
+
+void INIT_PWM(void);
 
 void MOVE_SERVO(void);
 
@@ -87,7 +91,7 @@ int main(void)
   }
 }
 
-void INIT_TIMPWM(uint32_t freqPWM){
+void INIT_TIMPWM(void){
 TIM_TimeBaseInitTypeDef TIM_BaseStruct;
 
 RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -103,4 +107,19 @@ TIM_BaseStruct.TIM_RepetitionCounter = 0;
 
 TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
 TIM_Cmd(TIM4, ENABLE);
+}
+
+void INIT_PWM(void){
+TIM_OCInitTypeDef TIM_OCStruct;
+
+TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
+TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
+TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
+
+uint32_t TIM_Period = SystemCoreClock / freqPWM - 1;
+
+TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCycle) / 100 - 1;
+
+TIM_OC1Init(TIM4, &TIM_OCStruct);
+TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
 }
