@@ -72,7 +72,11 @@ typedef struct {
   BitAction TLCD_INIT;
 }LCD_2X16_t;
 
+#define freqServo 10e3
+
 void INIT_TIM3(uint32_t freq);
+
+void INIT_TIMPWM(uint32_t freqPWM);
 
 void MOVE_SERVO(void);
 
@@ -81,4 +85,22 @@ int main(void)
   while (1)
   {
   }
+}
+
+void INIT_TIMPWM(uint32_t freqPWM){
+TIM_TimeBaseInitTypeDef TIM_BaseStruct;
+
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+TIM_BaseStruct.TIM_Prescaler = 0;
+
+TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
+
+TIM_BaseStruct.TIM_Period = SystemCoreClock / freqPWM - 1;
+
+TIM_BaseStruct.TIM_ClockDivision = TIM_CKD_DIV1;
+TIM_BaseStruct.TIM_RepetitionCounter = 0;
+
+TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
+TIM_Cmd(TIM4, ENABLE);
 }

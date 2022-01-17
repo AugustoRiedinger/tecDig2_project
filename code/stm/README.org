@@ -10,6 +10,7 @@
   - [[#definición-de-constantes][Definición de constantes:]]
   - [[#definición-de-funciones-locales][Definición de funciones locales:]]
   - [[#main][Main:]]
+  - [[#funciones-locales][Funciones locales:]]
 
 * Sobre el proyecto:
 
@@ -202,13 +203,20 @@ typedef struct {
   BitAction TLCD_INIT;
 }LCD_2X16_t;
 #+end_src
+*** Servomotor:
+
+Frecuencia del PWM en Hz que controlorá el servomotor:
+
+#+begin_src C
+#define freqServo 10e3
+#+end_src
 
 ** Definición de funciones locales:
 
 En esta sección se definen las distintas funciones a utilizar en el código local.
 
 *** TIMERS:
-
+**** TIM3:
 Función para incializar el TIM3 del MCU con una determinada frecuencia.
 
  + *Returns*: void.
@@ -217,6 +225,18 @@ Función para incializar el TIM3 del MCU con una determinada frecuencia.
 #+begin_src C
 void INIT_TIM3(uint32_t freq);
 #+end_src
+
+**** TIM4:
+
+Función para inicializar el TIM4 para el control de la salida PWM necesaria para el control del servomotor:
+
+ + *Returns*: void.
+ + *Params* : freqPWM - Frecuencia del PWM a la que se incializará el TIM4.
+
+#+begin_src C
+void INIT_TIMPWM(uint32_t freqPWM);
+#+end_src
+
 *** Servomotor:
 
 Función para iniciar el proceso de movimiento del servomotor.
@@ -236,5 +256,75 @@ int main(void)
   while (1)
   {
   }
+}
+#+end_src
+** Funciones locales:
+
+En esta sección se implementan las diferentes funciones del código.
+
+*** TIMERS:
+
+**** TIM4:
+
+Este es el TIMER utilizado para el control de la salida PWM.
+
+***** Inicialización:
+
+Aquí se inicializa el TIMER para setear la frecuencia inicial del PWM.
+
+#+begin_src C
+void INIT_TIMPWM(uint32_t freqPWM){
+TIM_TimeBaseInitTypeDef TIM_BaseStruct;
+#+end_src
+
+En principio, se habilita el clock para el TIM4; el cual está conectado al bus APB1.
+
+#+begin_src C
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+#+end_src
+
+En este caso, como se quiere que la frecuencia del TIM sea la máxima, se setará el prescaler en cero:
+
+#+begin_src C
+TIM_BaseStruct.TIM_Prescaler = 0;
+#+end_src
+
+Esto es debido a que la frecuencia de tick del TIM está definida como:
+
+ + TIM_tickFreq = TIM_defaultFreq / (prescaller_set + 1)
+
+De esta forma, se garantiza que TIM_tickFreq = TIM_defaultFreq.
+
+Se setea el conteo hacia arriba:
+
+#+begin_src C
+TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
+#+end_src
+
+Ahora, para setear el periodo del TIM cuando se resetea, primero se debe obtener el valor máximo para el timer. En este caso, como el TIM es de 16 bits, el valor máximo será 2^16 = 65535.
+
+Para obtener la frecuencia del PWM, la ecuación es:
+
+ + PWM_freq = TIM_tickFreq / (TIM_period + 1)
+ + TIM_period = TIM_tickFreq / PWM_freq - 1
+
+Se obtiene un periodo entonces según:
+
+#+begin_src C
+TIM_BaseStruct.TIM_Period = SystemCoreClock / freqPWM - 1;
+#+end_src
+
+Y se terminan de inicializar los restantes parámetros del timer:
+
+#+begin_src C
+TIM_BaseStruct.TIM_ClockDivision = TIM_CKD_DIV1;
+TIM_BaseStruct.TIM_RepetitionCounter = 0;
+#+end_src
+
+Finalmente, se carga la inicialización en la estructura del timer y se comienza el conteo:
+
+#+begin_src C
+TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
+TIM_Cmd(TIM4, ENABLE);
 }
 #+end_src
