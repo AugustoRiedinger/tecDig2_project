@@ -3,12 +3,14 @@
 
 * Índice :toc:
 - [[#sobre-el-proyecto][Sobre el proyecto:]]
+- [[#estructura-del-código][Estructura del código:]]
 - [[#satdac][SATDAC:]]
   - [[#librerias-utilizadas][Librerias utilizadas:]]
   - [[#estructuras][Estructuras:]]
   - [[#definición-de-constantes][Definición de constantes:]]
   - [[#definición-de-funciones-locales][Definición de funciones locales:]]
   - [[#main][Main:]]
+  - [[#interrupciones][Interrupciones.]]
   - [[#funciones-locales][Funciones locales:]]
 - [[#erdytc][ERDYTC:]]
 
@@ -35,6 +37,29 @@ Y la ERDYTC las siguientes:
  + Ingreso de comandos por usuario y transmisión de los mismos.
  + Almacenamiento en memoria externa.
  + Recepción y transmisión de datos por RF.
+* Estructura del código:
+
+El sistema completo contará con dos codigos interdependientes, pero que se cargan a MCU distintos. Se identifican como SATDAC (cargado a BlackPill según /code//satdac//src//main.c/) y ERDYTC (cargado a NUCLEO según /code//erdytc//src//main.c/)). La edición de los archivos se realizó en Doom Emacs y se utilizó la herramienta de ST Atollic TRUEStudio para cargar los códigos a los MCU y para debuggear.
+
+En ambos códigos, se describe paso a paso las líneas y decisiones tomadas. Se siguen los siguientes pasos en la estructura:
+
+ + Se describen las librerías a utilizar en cada caso.
+ + Se definen estructuras utilizadas en la configuración de componentes o pines del MCU.
+ + Se definen constantes utilizadas en el código.
+ + Se declaran las funciones locales utilizadas.
+ + Se inicializan las determinadas componentes y pines dentro del */main/*.
+ + Se desarrollan las interrupciones configuradas.
+ + Se desarrollan las funciones locales declaradas al inicio.
+
+Para la síntesis del código se utilizan las siguientes reglas:
+
+ + Funciones creadas por el usuario se identifican en mayúsculas. Ej.: *MY_FUNCTION()*.
+ + Variables globales o definiciones creadas por el usuario se identifican en minúsculas. Ej.: *myGlobalVar = x*.
+ + Variables locales creadas por el usuario se identifican con la primer letra en mayúscula y el resto en minúsculas. Ej.: *MyLocalVar = x*.
+ + Variables o definiciones que identifican pines de la placa se describen con un guión bajo al inicio. Ej.: *_led = GPIO_Pin_x*.
+ + Variables o definiciones que identifican puertos de la placa se describen con un guión bajo al inicio y la primer letra en mayúsculas. Ej.: *_Led = GPIOx*.
+ + Variables o definiciones que identifican pinSources se describen con dos guiones bajos al inicio. Ej.: *__led = GPIO_PinSourcex*.
+
 * SATDAC:
 :PROPERTIES:
 :header-args: :tangle satdac/src/main.c
@@ -48,7 +73,7 @@ Aquí se muestran las librerías utilizadas en el diseño del sistema.
 
  + Librería estándar, con las funciones y códigos básicos para microcontroladores STM32F4XX:
 
-#+begin_src C
+#+begin_src c
 #include "stm32f4xx.h"
 #include "stm32f4xx_gpio.h"
 #include "stdio.h"
@@ -57,25 +82,25 @@ Aquí se muestran las librerías utilizadas en el diseño del sistema.
 
  + Librería para el control del CLOCK del MCU:
 
-#+begin_src C
+#+begin_src c
 #include "stm32f4xx_rcc.h"
 #+end_src
 
  + Librería para el control de pines analógicos:
 
-#+begin_src C
+#+begin_src c
 #include "stm32f4xx_adc.h"
 #+end_src
 
  + Librería para el control de TIMERS:
 
-#+begin_src C
+#+begin_src c
 #include "stm32f4xx_tim.h"
 #+end_src
 
  + Libería para habilitar funciones matemáticas, como /pow()/:
 
-#+begin_src C
+#+begin_src c
 #include "math.h"
 #+end_src
 ** Estructuras:
@@ -86,19 +111,19 @@ En esta sección se declaran las diferentes estructuras utilizadas para la confi
 
 La siguiente es la estructura para configuración de pines como salidas digitales:
 
-#+begin_src C
+#+begin_src c
 GPIO_InitTypeDef    GPIO_InitStructure;
 #+end_src
 
 La siguiente es la estructura para la configuración y habilitación de interrupciones (por vencimiento de cuenta de TIMER, por DMA, etc.):
 
-#+begin_src C
+#+begin_src c
 NVIC_InitTypeDef    NVIC_InitStructure;
 #+end_src
 
 La siguiente estructura se utiliza para configurar interrupciones externas; principalmente utilizada para interrupir según el estado de una entrada digital (pulsador, etc.):
 
-#+begin_src C
+#+begin_src c
 EXTI_InitTypeDef   EXTI_InitStructure;
 #+end_src
 
@@ -106,7 +131,7 @@ EXTI_InitTypeDef   EXTI_InitStructure;
 
 Se definen las estructuras para inicializar pines como convertores analógico/digital:
 
-#+begin_src C
+#+begin_src c
 ADC_InitTypeDef         ADC_InitStructure;
 ADC_CommonInitTypeDef   ADC_CommonInitStructure;
 #+end_src
@@ -114,7 +139,7 @@ ADC_CommonInitTypeDef   ADC_CommonInitStructure;
 
 Las siguientes estructuras se utilizan en la configuración de TIMERS del MCU:
 
-#+begin_src C
+#+begin_src c
 TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 TIM_OCInitTypeDef       TIM_OCInitStructure;
 #+end_src
@@ -123,7 +148,7 @@ TIM_OCInitTypeDef       TIM_OCInitStructure;
 
 La siguiente estructura se utiliza en la configuración y habilitación de la funcionalidad de DMA (/Acceso Directo a Memoria/):
 
-#+begin_src C
+#+begin_src c
 DMA_InitTypeDef     DMA_InitStructure;
 #+end_src
 
@@ -136,17 +161,19 @@ Aquí se definen como constantes los pines que se utilizarán en el hardware.
 
 **** Servomotor:
 
-#+begin_src C
-#define _servo  GPIOA
-#define servo   GPIO_Pin_3
-#define __servo GPIO_PinSource3
+#+begin_src c
+#define _Servo      GPIOA
+#define _servo      GPIO_Pin_3
+#define __servo     GPIO_PinSource3
 #+end_src
+
+#+RESULTS:
 
 *** LCD:
 
 Aquí se definen distintas constantes que se utilizan en las funciones de control del LCD:
 
-#+begin_src C
+#+begin_src c
 #define  TLCD_INIT_PAUSE        100000
 #define  TLCD_PAUSE             50000
 #define  TLCD_CLK_PAUSE         1000
@@ -167,7 +194,7 @@ Aquí se definen distintas constantes que se utilizan en las funciones de contro
 
 La estructura para identificar los pines del LCD:
 
-#+begin_src C
+#+begin_src c
 typedef enum
 {
   TLCD_RS = 0,  // RS-Pin
@@ -181,13 +208,13 @@ typedef enum
 
 Se define el nombre del LCD como una constante:
 
-#+begin_src C
+#+begin_src c
 #define  TLCD_ANZ   6
 #+end_src
 
 Y se crea una estructura con los estados del mismo:
 
-#+begin_src C
+#+begin_src c
 typedef enum {
   TLCD_OFF = 0,
   TLCD_ON,
@@ -198,7 +225,7 @@ typedef enum {
 
 Finalmente la estructura para crear el objeto LCD (de 2x16 que se utilizará en este caso):
 
-#+begin_src C
+#+begin_src c
 typedef struct {
   TLCD_NAME_t TLCD_NAME;
   GPIO_TypeDef* TLCD_PORT;
@@ -211,13 +238,13 @@ typedef struct {
 
 Frecuencia del PWM en Hz que controlorá el servomotor:
 
-#+begin_src C
+#+begin_src c
 #define freqPWM 10e3
 #+end_src
 
 Ciclo de trabajo que definará la onda de salida PWM:
 
-#+begin_src C
+#+begin_src c
 #define dutyCyclePWM 50
 #+end_src
 
@@ -232,7 +259,7 @@ Función para incializar el TIM3 del MCU con una determinada frecuencia.
  + *Returns*: void.
  + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
 
-#+begin_src C
+#+begin_src c
 void INIT_TIM3(uint32_t freq);
 #+end_src
 
@@ -243,7 +270,7 @@ Función para inicializar el TIM4 para el control de la salida PWM necesaria par
  + *Returns*: void.
  + *Params* : void.
 
-#+begin_src C
+#+begin_src c
 void INIT_TIMPWM(void);
 #+end_src
 
@@ -252,7 +279,7 @@ Función para inicializar las salidas PWM4:
  + *Returns*: void.
  + *Params* : void.
 
-#+begin_src C
+#+begin_src c
 void INIT_PWM(void);
 #+end_src
 
@@ -263,7 +290,7 @@ Función para inicializar la salida del servomotor como PWM:
  + *Returns*: void.
  + *Params* : void.
 
-#+begin_src C
+#+begin_src c
 void INIT_SERVO(void);
 #+end_src
 
@@ -272,7 +299,7 @@ Función para iniciar el proceso de movimiento del servomotor.
  + *Returns*: void.
  + *Params* : void.
 
-#+begin_src C
+#+begin_src c
 void MOVE_SERVO(void);
 #+end_src
 
@@ -280,7 +307,7 @@ void MOVE_SERVO(void);
 
 En esta sección se encuentra la sección principal del código donde se inicializa y se llama a las funciones.
 
-#+begin_src C
+#+begin_src c
 int main(void){
 #+end_src
 
@@ -290,7 +317,7 @@ En esta sección se inicializan las diferentes componentes del código. Este el 
 
 Primeramente, se iniciliza el sistema según:
 
-#+begin_src C
+#+begin_src c
     SystemInit();
 #+end_src
 
@@ -298,20 +325,20 @@ Primeramente, se iniciliza el sistema según:
 
 Inicialización del TIM4 para el control del tiempo del PWM:
 
-#+begin_src C
+#+begin_src c
     INIT_TIMPWM();
 #+end_src
 
 Inicialización del PWM:
 
-#+begin_src C
+#+begin_src c
     INIT_PWM();
 #+end_src
 **** Servomotor:
 
 Se inicializa el servomotor a la frecuencia /freqPWM/ establecida y con el /dutyCyclePWM/ seteado:
 
-#+begin_src C
+#+begin_src c
     INIT_SERVO();
 #+end_src
 
@@ -319,12 +346,13 @@ Se inicializa el servomotor a la frecuencia /freqPWM/ establecida y con el /duty
 
 Esta sección muestra el bucle principal infinito del código:
 
-#+begin_src C
+#+begin_src c
   while (1)
   {
   }
 }
 #+end_src
+** Interrupciones.
 ** Funciones locales:
 
 En esta sección se implementan las diferentes funciones del código.
@@ -339,20 +367,20 @@ Este es el TIMER utilizado para el control de la salida PWM.
 
 Aquí se inicializa el TIMER para setear la frecuencia inicial del PWM.
 
-#+begin_src C
+#+begin_src c
 void INIT_TIMPWM(void){
     TIM_TimeBaseInitTypeDef TIM_BaseStruct;
 #+end_src
 
 En principio, se habilita el clock para el TIM4; el cual está conectado al bus APB1.
 
-#+begin_src C
+#+begin_src c
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 #+end_src
 
 En este caso, como se quiere que la frecuencia del TIM sea la máxima, se seteará el prescaler en cero:
 
-#+begin_src C
+#+begin_src c
     TIM_BaseStruct.TIM_Prescaler = 0;
 #+end_src
 
@@ -364,7 +392,7 @@ De esta forma, se garantiza que TIM_tickFreq = TIM_defaultFreq.
 
 Se setea el conteo hacia arriba:
 
-#+begin_src C
+#+begin_src c
     TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
 #+end_src
 
@@ -377,20 +405,20 @@ Para obtener la frecuencia del PWM, la ecuación es:
 
 Se obtiene un periodo entonces según:
 
-#+begin_src C
+#+begin_src c
     TIM_BaseStruct.TIM_Period = SystemCoreClock / freqPWM - 1;
 #+end_src
 
 Y se terminan de inicializar los restantes parámetros del timer:
 
-#+begin_src C
+#+begin_src c
     TIM_BaseStruct.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_BaseStruct.TIM_RepetitionCounter = 0;
 #+end_src
 
 Finalmente, se carga la inicialización en la estructura del timer y se comienza el conteo:
 
-#+begin_src C
+#+begin_src c
     TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
     TIM_Cmd(TIM4, ENABLE);
 }
@@ -399,14 +427,14 @@ Finalmente, se carga la inicialización en la estructura del timer y se comienza
 
 Esta función setea los canales PWM a las salidas PWM del servo.
 
-#+begin_src C
+#+begin_src c
 void INIT_PWM(void){
     TIM_OCInitTypeDef TIM_OCStruct;
 #+end_src
 
 Primero, se setea el PWM en modo 2, lo que indica que la señal se generará comenzando en estado bajo. Luego, se habilitan las salidas PWM y se indica la polaridad:
 
-#+begin_src C
+#+begin_src c
     TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
     TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
     TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
@@ -420,19 +448,19 @@ donde dutyCycle está en porcentaje, entre 0% y 100%.
 
 Por tanto, se crea una variable para calcular el periódo de trabajo del TIM4:
 
-#+begin_src C
+#+begin_src c
     uint32_t TIM_Period = SystemCoreClock / freqPWM - 1;
 #+end_src
 
 Y entonces a partir de la misma se puede establecer el duty cycle del PWM:
 
-#+begin_src C
-    TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCycle) / 100 - 1;
+#+begin_src c
+    TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCyclePWM) / 100 - 1;
 #+end_src
 
 Finalmente se carga la incialización a la estructura:
 
-#+begin_src C
+#+begin_src c
     TIM_OC1Init(TIM4, &TIM_OCStruct);
     TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
 }
@@ -445,27 +473,27 @@ Aquí se describen las funciones relacionadas con el funcionamiento del servomot
 
 Esta función inicializa la salida correspondiente al servo con soporte para PWM disparado según el TIM4:
 
-#+begin_src C
+#+begin_src c
 void INIT_SERVO(void){
     GPIO_InitTypeDef GPIO_InitStruct;
 #+end_src
 
 Se habilita el clock para el puerto donde estará la salida PWM (GPIOA - Pin 3):
 
-#+begin_src C
+#+begin_src c
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 #+end_src
 
 Configuración de la función alternante PWM disparada por el TIM4 para el pin correspondiente al servo:
 
-#+begin_src C
-    GPIO_PinAFConfig(_servo, __servo, GPIO_AF_TIM4);
+#+begin_src c
+    GPIO_PinAFConfig(_Servo, __servo, GPIO_AF_TIM4);
 #+end_src
 
 Se setea el pin finalmente y se carga en la estructura:
 
-#+begin_src C
-    GPIO_InitStruct.GPIO_Pin = servo;
+#+begin_src c
+    GPIO_InitStruct.GPIO_Pin = _servo;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
@@ -478,7 +506,7 @@ Se setea el pin finalmente y se carga en la estructura:
 :header-args: :tangle erdytc/src/main.c
 :END:
 
-#+begin_src C
+#+begin_src c
 #include "stm32f4xx.h"
 
 int main(void)
