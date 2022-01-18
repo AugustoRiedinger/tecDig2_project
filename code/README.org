@@ -10,9 +10,16 @@
   - [[#definición-de-constantes][Definición de constantes:]]
   - [[#definición-de-funciones-locales][Definición de funciones locales:]]
   - [[#main][Main:]]
-  - [[#interrupciones][Interrupciones.]]
+  - [[#interrupciones][Interrupciones:]]
   - [[#funciones-locales][Funciones locales:]]
 - [[#erdytc][ERDYTC:]]
+  - [[#librerías-utilizadas][Librerías utilizadas:]]
+  - [[#estructuras-1][Estructuras:]]
+  - [[#definición-de-constantes-1][Definición de constantes:]]
+  - [[#definición-de-funciones-locales-1][Definición de funciones locales:]]
+  - [[#main-1][Main:]]
+  - [[#interrupciones-1][Interrupciones:]]
+  - [[#funciones-locales-1][Funciones locales:]]
 
 * Sobre el proyecto:
 
@@ -169,71 +176,6 @@ Aquí se definen como constantes los pines que se utilizarán en el hardware.
 
 #+RESULTS:
 
-*** LCD:
-
-Aquí se definen distintas constantes que se utilizan en las funciones de control del LCD:
-
-#+begin_src c
-#define  TLCD_INIT_PAUSE        100000
-#define  TLCD_PAUSE             50000
-#define  TLCD_CLK_PAUSE         1000
-#define  TLCD_MAXX              16
-#define  TLCD_MAXY              2
-#define  MaxDigCount            4095
-#define  MaxMiliVoltRef         3320
-#define  Res32Bit               32
-#define  DAC_DHR12R2_ADDRESS    0x40007414
-#define  TLCD_CMD_INIT_DISPLAY  0x28
-#define  TLCD_CMD_ENTRY_MODE    0x06
-#define  TLCD_CMD_DISP_M0       0x08
-#define  TLCD_CMD_DISP_M1       0x0C
-#define  TLCD_CMD_DISP_M2       0x0E
-#define  TLCD_CMD_DISP_M3       0x0F
-#define  TLCD_CMD_CLEAR         0x01
-#+end_src
-
-La estructura para identificar los pines del LCD:
-
-#+begin_src c
-typedef enum
-{
-  TLCD_RS = 0,  // RS-Pin
-  TLCD_E  = 1,  // E-Pin
-  TLCD_D4 = 2,  // DB4-Pin
-  TLCD_D5 = 3,  // DB5-Pin
-  TLCD_D6 = 4,  // DB6-Pin
-  TLCD_D7 = 5   // DB7-Pin
-}TLCD_NAME_t;
-#+end_src
-
-Se define el nombre del LCD como una constante:
-
-#+begin_src c
-#define  TLCD_ANZ   6
-#+end_src
-
-Y se crea una estructura con los estados del mismo:
-
-#+begin_src c
-typedef enum {
-  TLCD_OFF = 0,
-  TLCD_ON,
-  TLCD_CURSOR,
-  TLCD_BLINK
-}TLCD_MODE_t;
-#+end_src
-
-Finalmente la estructura para crear el objeto LCD (de 2x16 que se utilizará en este caso):
-
-#+begin_src c
-typedef struct {
-  TLCD_NAME_t TLCD_NAME;
-  GPIO_TypeDef* TLCD_PORT;
-  const uint16_t TLCD_PIN;
-  const uint32_t TLCD_CLK;
-  BitAction TLCD_INIT;
-}LCD_2X16_t;
-#+end_src
 *** Servomotor:
 
 Frecuencia del PWM en Hz que controlorá el servomotor:
@@ -352,7 +294,7 @@ Esta sección muestra el bucle principal infinito del código:
   }
 }
 #+end_src
-** Interrupciones.
+** Interrupciones:
 ** Funciones locales:
 
 En esta sección se implementan las diferentes funciones del código.
@@ -506,16 +448,466 @@ Se setea el pin finalmente y se carga en la estructura:
 :header-args: :tangle erdytc/src/main.c
 :END:
 
+Aquí realizar una descripción más detallada del sistema, poner fotos de placas, prototipo físico terminado, etc.
+
+** Librerías utilizadas:
+
+Aquí se muestran las librerías utilizadas en el diseño del sistema.
+
+ + Librería estándar, con las funciones y códigos básicos para microcontroladores STM32F4XX:
+
 #+begin_src c
 #include "stm32f4xx.h"
+#include "stm32f4xx_gpio.h"
+#include "stdio.h"
+#include "misc.h"
+#+end_src
 
-int main(void)
+ + Librería para el control del CLOCK del MCU:
+
+#+begin_src c
+#include "stm32f4xx_rcc.h"
+#+end_src
+
+ + Librería para el control de TIMERS:
+
+#+begin_src c
+#include "stm32f4xx_tim.h"
+#+end_src
+
+ + Libería para habilitar funciones matemáticas, como /pow()/:
+
+#+begin_src c
+#include "math.h"
+#+end_src
+
+** Estructuras:
+
+En esta sección se declaran las diferentes estructuras utilizadas para la configuración de pines del MCU.
+
+*** General:
+
+La siguiente es la estructura para configuración de pines como salidas digitales:
+
+#+begin_src c
+GPIO_InitTypeDef    GPIO_InitStructure;
+#+end_src
+
+La siguiente es la estructura para la configuración y habilitación de interrupciones (por vencimiento de cuenta de TIMER, por DMA, etc.):
+
+#+begin_src c
+NVIC_InitTypeDef    NVIC_InitStructure;
+#+end_src
+
+La siguiente estructura se utiliza para configurar interrupciones externas; principalmente utilizada para interrupir según el estado de una entrada digital (pulsador, etc.):
+
+#+begin_src c
+EXTI_InitTypeDef   EXTI_InitStructure;
+#+end_src
+
+*** TIMERS:
+
+Las siguientes estructuras se utilizan en la configuración de TIMERS del MCU:
+
+#+begin_src c
+TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+TIM_OCInitTypeDef       TIM_OCInitStructure;
+#+end_src
+
+*** DMA:
+
+La siguiente estructura se utiliza en la configuración y habilitación de la funcionalidad de DMA (/Acceso Directo a Memoria/):
+
+#+begin_src c
+DMA_InitTypeDef     DMA_InitStructure;
+#+end_src
+
+** Definición de constantes:
+En esta sección se definen constantes a utilizar en el resto del código.
+
+*** Hardware:
+
+Aquí se definen como constantes los pines que se utilizarán en el hardware.
+
+*** LCD:
+
+Aquí se definen distintas constantes que se utilizan en las funciones de control del LCD:
+
+#+begin_src c
+#define  TLCD_INIT_PAUSE        100000
+#define  TLCD_PAUSE             50000
+#define  TLCD_CLK_PAUSE         1000
+#define  TLCD_MAXX              16
+#define  TLCD_MAXY              2
+#define  MaxDigCount            4095
+#define  MaxMiliVoltRef         3320
+#define  Res32Bit               32
+#define  DAC_DHR12R2_ADDRESS    0x40007414
+#define  TLCD_CMD_INIT_DISPLAY  0x28
+#define  TLCD_CMD_ENTRY_MODE    0x06
+#define  TLCD_CMD_DISP_M0       0x08
+#define  TLCD_CMD_DISP_M1       0x0C
+#define  TLCD_CMD_DISP_M2       0x0E
+#define  TLCD_CMD_DISP_M3       0x0F
+#define  TLCD_CMD_CLEAR         0x01
+#+end_src
+
+La estructura para identificar los pines del LCD:
+
+#+begin_src c
+typedef enum
 {
-  int i = 0;
+  TLCD_RS = 0,  // RS-Pin
+  TLCD_E  = 1,  // E-Pin
+  TLCD_D4 = 2,  // DB4-Pin
+  TLCD_D5 = 3,  // DB5-Pin
+  TLCD_D6 = 4,  // DB6-Pin
+  TLCD_D7 = 5   // DB7-Pin
+}TLCD_NAME_t;
+#+end_src
 
+Se define el nombre del LCD como una constante:
+
+#+begin_src c
+#define  TLCD_ANZ   6
+#+end_src
+
+Y se crea una estructura con los estados del mismo:
+
+#+begin_src c
+typedef enum {
+  TLCD_OFF = 0,
+  TLCD_ON,
+  TLCD_CURSOR,
+  TLCD_BLINK
+}TLCD_MODE_t;
+#+end_src
+
+Finalmente la estructura para crear el objeto LCD (de 2x16 que se utilizará en este caso):
+
+#+begin_src c
+typedef struct {
+  TLCD_NAME_t TLCD_NAME;
+  GPIO_TypeDef* TLCD_PORT;
+  const uint16_t TLCD_PIN;
+  const uint32_t TLCD_CLK;
+  BitAction TLCD_INIT;
+}LCD_2X16_t;
+#+end_src
+
+** Definición de funciones locales:
+
+En esta sección se definen las distintas funciones a utilizar en el código local.
+
+*** General:
+
+Aquí se definen funciones locales que son utilizadas por varias componentes del código.
+
+Función para determinar el nombre formal del clock para un determinado puerto:
+
+ + *Returns*: /uint32_t/ con el dato del CLOCK.
+ + *Params.*: Nombre del puerto a determinar.
+
+#+begin_src c
+uint32_t FIND_CLOCK(GPIO_TypeDef* Port);
+#+end_src
+*** LCD:
+
+Las siguientes funciones se definen para determinar varios parámetros y cualidades del display LCD:
+
+#+begin_src c
+void P_LCD_2x16_InitIO(LCD_2X16_t* LCD_2X16);
+void P_LCD_2x16_PinLo(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16);
+void P_LCD_2x16_PinHi(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16);
+void P_LCD_2x16_Delay(volatile uint32_t nCount);
+void P_LCD_2x16_InitSequenz(LCD_2X16_t* LCD_2X16);
+void P_LCD_2x16_Clk(LCD_2X16_t* LCD_2X16);
+void P_LCD_2x16_Cmd(uint8_t wert, LCD_2X16_t* LCD_2X16);
+void P_LCD_2x16_Cursor(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y);
+void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16);
+#+end_src
+
+Función para inicializar los pines del LCD:
+
+ + *Returns*: void.
+ + *Params.*: Matriz tipo LCD_2X16_t con los pines detallados del LCD.
+
+#+begin_src c
+void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16);
+#+end_src
+
+Función para refrescar la pantalla del LCD:
+
+ + *Returns*: void.
+ + *Params.*: Matriz tipo LCD_2X16_t con los pines detallados del LCD.
+
+#+begin_src c
+void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16);
+#+end_src
+
+Función para para imprimir una string dictada por el usuario en la pantalla del LCD:
+
+ + *Returns*: void.
+ + *Params.*:
+   + Matriz tipo LCD_2X16_t con los pines detallados del LCD.
+   + Un indicador /x/ para indentificar la columna del LCD donde se iniciará la string.
+   + Un indicardor /y/ para identificar la fila del LCD donde se iniciará la string.
+   + Una string o puntero a la misma.
+
+#+begin_src c
+void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr);
+#+end_src
+
+*** TIMERS:
+**** TIM3:
+Función para incializar el TIM3 del MCU con una determinada frecuencia.
+
+ + *Returns*: void.
+ + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
+
+#+begin_src c
+void INIT_TIM3(uint32_t freq);
+#+end_src
+
+** Main:
+
+En esta sección se encuentra la sección principal del código donde se inicializa y se llama a las funciones.
+
+#+begin_src c
+int main(void){
+#+end_src
+
+*** Inicialización:
+
+En esta sección se inicializan las diferentes componentes del código. Este el procesamiento inicial que se realiza cuando se enciende el sistema.
+
+Primeramente, se iniciliza el sistema según:
+
+#+begin_src c
+    SystemInit();
+#+end_src
+
+*** Bucle pincipal:
+
+Esta sección muestra el bucle principal infinito del código:
+
+#+begin_src c
   while (1)
   {
-      i++;
+  }
+}
+#+end_src
+** Interrupciones:
+** Funciones locales:
+
+En esta sección se implementan las diferentes funciones del código.
+
+*** LCD:
+
+**** Internas:
+
+Inicialización de los pines del display:
+
+#+begin_src c
+void P_LCD_2x16_InitIO(LCD_2X16_t* LCD_2X16)
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+    TLCD_NAME_t lcd_pin;
+
+    for (lcd_pin = 0; lcd_pin < TLCD_ANZ; lcd_pin++)
+    {
+        //Habilitacion del Clock para cada PIN:
+        RCC_AHB1PeriphClockCmd(LCD_2X16[lcd_pin].TLCD_CLK, ENABLE);
+
+        //Configuracion como salidas digitales:
+        GPIO_InitStructure.GPIO_Pin = LCD_2X16[lcd_pin].TLCD_PIN;
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+        GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+        GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+        GPIO_Init(LCD_2X16[lcd_pin].TLCD_PORT, &GPIO_InitStructure);
+
+        //Default Wert einstellen
+        if(LCD_2X16[lcd_pin].TLCD_INIT == Bit_RESET)
+            P_LCD_2x16_PinLo(lcd_pin, LCD_2X16);
+        else
+            P_LCD_2x16_PinHi(lcd_pin, LCD_2X16);
+    }
+}
+#+end_src
+
+Cambiar el estado de un pin a alto o bajo:
+
+#+begin_src c
+void P_LCD_2x16_PinLo(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16)
+{
+  LCD_2X16[lcd_pin].TLCD_PORT->BSRRH = LCD_2X16[lcd_pin].TLCD_PIN;
+}
+
+void P_LCD_2x16_PinHi(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16)
+{
+  LCD_2X16[lcd_pin].TLCD_PORT->BSRRL = LCD_2X16[lcd_pin].TLCD_PIN;
+}
+#+end_src
+
+Retardo utilizado en las funciones del LCD:
+
+#+begin_src c
+void P_LCD_2x16_Delay(volatile uint32_t nCount)
+{
+  while(nCount--)
+  {
+  }
+}
+#+end_src
+
+Inicialización de secuencia del LCD:
+
+#+begin_src c
+void P_LCD_2x16_InitSequenz(LCD_2X16_t* LCD_2X16)
+{
+  //Inicializacion de la secuencia:
+  P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16);
+  P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16);
+  P_LCD_2x16_PinLo(TLCD_D6, LCD_2X16);
+  P_LCD_2x16_PinLo(TLCD_D7, LCD_2X16);
+  // Erster Init Impuls
+  P_LCD_2x16_Clk(LCD_2X16);
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+  // Zweiter Init Impuls
+  P_LCD_2x16_Clk(LCD_2X16);
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+  // Dritter Init Impuls
+  P_LCD_2x16_Clk(LCD_2X16);
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+  // LCD-Modus einstellen (4Bit-Mode)
+  P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
+  P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16);
+  P_LCD_2x16_PinLo(TLCD_D6, LCD_2X16);
+  P_LCD_2x16_PinLo(TLCD_D7, LCD_2X16);
+  P_LCD_2x16_Clk(LCD_2X16);
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+#+end_src
+
+Configuración del clock del LCD:
+
+#+begin_src c
+void P_LCD_2x16_Clk(LCD_2X16_t* LCD_2X16)
+{
+  // Pin-E auf Hi
+  P_LCD_2x16_PinHi(TLCD_E, LCD_2X16);
+  // kleine Pause
+  P_LCD_2x16_Delay(TLCD_CLK_PAUSE);
+  // Pin-E auf Lo
+  P_LCD_2x16_PinLo(TLCD_E, LCD_2X16);
+  // kleine Pause
+  P_LCD_2x16_Delay(TLCD_CLK_PAUSE);
+}
+#+end_src
+
+Comandos utilizados en las funciones del LCD:
+
+#+begin_src c
+void P_LCD_2x16_Cmd(uint8_t wert, LCD_2X16_t* LCD_2X16)
+{
+  // RS=Lo (Command)
+  P_LCD_2x16_PinLo(TLCD_RS, LCD_2X16);
+  // Hi-Nibble ausgeben
+  if((wert&0x80)!=0) P_LCD_2x16_PinHi(TLCD_D7, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D7, LCD_2X16);
+  if((wert&0x40)!=0) P_LCD_2x16_PinHi(TLCD_D6, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D6, LCD_2X16);
+  if((wert&0x20)!=0) P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D5, LCD_2X16);
+  if((wert&0x10)!=0) P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
+  P_LCD_2x16_Clk(LCD_2X16);
+  // Lo-Nibble ausgeben
+  if((wert&0x08)!=0) P_LCD_2x16_PinHi(TLCD_D7, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D7, LCD_2X16);
+  if((wert&0x04)!=0) P_LCD_2x16_PinHi(TLCD_D6, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D6, LCD_2X16);
+  if((wert&0x02)!=0) P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D5, LCD_2X16);
+  if((wert&0x01)!=0) P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
+  P_LCD_2x16_Clk(LCD_2X16);
+}
+
+void P_LCD_2x16_Cursor(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y)
+{
+  uint8_t wert;
+
+  if(x>=TLCD_MAXX) x=0;
+  if(y>=TLCD_MAXY) y=0;
+
+  wert=(y<<6);
+  wert|=x;
+  wert|=0x80;
+  P_LCD_2x16_Cmd(wert,LCD_2X16);
+}
+#+end_src
+
+Análisis de datos del LCD:
+
+#+begin_src c
+void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16)
+{
+  // RS=Hi (Data)
+  P_LCD_2x16_PinHi(TLCD_RS, LCD_2X16);
+  // Hi-Nibble ausgeben
+  if((wert&0x80)!=0) P_LCD_2x16_PinHi(TLCD_D7, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D7, LCD_2X16);
+  if((wert&0x40)!=0) P_LCD_2x16_PinHi(TLCD_D6, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D6, LCD_2X16);
+  if((wert&0x20)!=0) P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D5, LCD_2X16);
+  if((wert&0x10)!=0) P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
+  P_LCD_2x16_Clk(LCD_2X16);
+  // Lo-Nibble ausgeben
+  if((wert&0x08)!=0) P_LCD_2x16_PinHi(TLCD_D7, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D7, LCD_2X16);
+  if((wert&0x04)!=0) P_LCD_2x16_PinHi(TLCD_D6, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D6, LCD_2X16);
+  if((wert&0x02)!=0) P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D5, LCD_2X16);
+  if((wert&0x01)!=0) P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
+  P_LCD_2x16_Clk(LCD_2X16);
+}
+#+end_src
+**** Funcionalidad:
+
+***** Inicialización de los pines del LCD:
+
+#+begin_src c
+void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
+{
+    //Inicialización de los pines del LCD:
+    P_LCD_2x16_InitIO(LCD_2X16);
+    // kleine Pause
+    P_LCD_2x16_Delay(TLCD_INIT_PAUSE);
+    // Init Sequenz starten
+    P_LCD_2x16_InitSequenz(LCD_2X16);
+    // LCD-Settings einstellen
+    P_LCD_2x16_Cmd(TLCD_CMD_INIT_DISPLAY, LCD_2X16);
+    P_LCD_2x16_Cmd(TLCD_CMD_ENTRY_MODE, LCD_2X16);
+    // Display einschalten
+    P_LCD_2x16_Cmd(TLCD_CMD_DISP_M1, LCD_2X16);
+    // Display l�schen
+    P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
+    // kleine Pause
+    P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+#+end_src
+***** Refresco de pantalla:
+
+#+begin_src c
+void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
+{
+  // Display l�schen
+  P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
+  // kleine Pause
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+#+end_src
+***** Imprimir en pantalla:
+
+#+begin_src c
+void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
+{
+  // Cursor setzen
+  P_LCD_2x16_Cursor(LCD_2X16,x,y);
+  // kompletten String ausgeben
+  while (*ptr != 0) {
+    P_LCD_2x16_Data(*ptr, LCD_2X16);
+    ptr++;
   }
 }
 #+end_src
