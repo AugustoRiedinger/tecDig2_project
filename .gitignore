@@ -1,1 +1,5 @@
 code/.metadata/*
+*.su
+*.o
+*.elf
+*.map
