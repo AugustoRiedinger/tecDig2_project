@@ -59,20 +59,27 @@ int main(void){
 }
 
 void INIT_TIMPWM(void){
+    /*Declaracion estructura particular:*/
     TIM_TimeBaseInitTypeDef TIM_BaseStruct;
 
+    /*Activacion del clock:*/
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 
+    /*Seteo del preescaler en 0 para obtener la maxima frecuencia:*/
     TIM_BaseStruct.TIM_Prescaler = 0;
 
+    /*Seteo del conteo hacia arriba:*/
     TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
 
+    /*Calculo periodo:*/
     TIM_BaseStruct.TIM_Period = SystemCoreClock / freqPWM - 1;
 
+    /*Seteo de parametros restantes y carga a la estructura:*/
     TIM_BaseStruct.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_BaseStruct.TIM_RepetitionCounter = 0;
-
     TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
+
+    /*Inicio del conteo:*/
     TIM_Cmd(TIM4, ENABLE);
 }
 
@@ -83,9 +90,9 @@ void INIT_PWM(void){
     TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
     TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
 
-    uint32_t TIM_Period = SystemCoreClock / freqPWM - 1;
+    uint32_t Period= SystemCoreClock / freqPWM - 1;
 
-    TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCyclePWM) / 100 - 1;
+    TIM_OCStruct.TIM_Pulse = ((Period + 1) * dutyCyclePWM) / 100 - 1;
 
     TIM_OC1Init(TIM4, &TIM_OCStruct);
     TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);

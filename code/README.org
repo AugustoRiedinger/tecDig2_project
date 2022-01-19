@@ -296,47 +296,20 @@ Esta sección muestra el bucle principal infinito del código:
 #+end_src
 ** Interrupciones:
 ** Funciones locales:
-
 En esta sección se implementan las diferentes funciones del código.
-
 *** TIMERS:
-
 **** TIM4:
-
 Este es el TIMER utilizado para el control de la salida PWM.
-
 ***** Inicialización del TIMER:
-
 Aquí se inicializa el TIMER para setear la frecuencia inicial del PWM.
 
-#+begin_src c
-void INIT_TIMPWM(void){
-    TIM_TimeBaseInitTypeDef TIM_BaseStruct;
-#+end_src
+El primer paso se basa en la habilitación del clock para el TIM4; el cual está conectado al bus APB1.
 
-En principio, se habilita el clock para el TIM4; el cual está conectado al bus APB1.
-
-#+begin_src c
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
-#+end_src
-
-En este caso, como se quiere que la frecuencia del TIM sea la máxima, se seteará el prescaler en cero:
-
-#+begin_src c
-    TIM_BaseStruct.TIM_Prescaler = 0;
-#+end_src
-
-Esto es debido a que la frecuencia de tick del TIM está definida como:
+Luego, como se quiere que la frecuencia del TIM sea la máxima, se seteará el prescaler en cero. Esto es debido a que la frecuencia de tick del TIM está definida como:
 
  + TIM_tickFreq = TIM_defaultFreq / (prescaller_set + 1)
 
 De esta forma, se garantiza que TIM_tickFreq = TIM_defaultFreq.
-
-Se setea el conteo hacia arriba:
-
-#+begin_src c
-    TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
-#+end_src
 
 Ahora, para setear el periodo del TIM cuando se resetea, primero se debe obtener el valor máximo para el timer. En este caso, como el TIM es de 16 bits, el valor máximo será 2^16 = 65535.
 
@@ -345,23 +318,31 @@ Para obtener la frecuencia del PWM, la ecuación es:
  + PWM_freq = TIM_tickFreq / (TIM_period + 1)
  + TIM_period = TIM_tickFreq / PWM_freq - 1
 
-Se obtiene un periodo entonces según:
+Finalmente, se terminan de inicializar los restantes parámetros y se carga la inicialización en la estructura del timer para dar comienzo al conteo.
 
 #+begin_src c
+void INIT_TIMPWM(void){
+    /*Declaracion estructura particular:*/
+    TIM_TimeBaseInitTypeDef TIM_BaseStruct;
+
+    /*Activacion del clock:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+    /*Seteo del preescaler en 0 para obtener la maxima frecuencia:*/
+    TIM_BaseStruct.TIM_Prescaler = 0;
+
+    /*Seteo del conteo hacia arriba:*/
+    TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
+
+    /*Calculo periodo:*/
     TIM_BaseStruct.TIM_Period = SystemCoreClock / freqPWM - 1;
-#+end_src
 
-Y se terminan de inicializar los restantes parámetros del timer:
-
-#+begin_src c
+    /*Seteo de parametros restantes y carga a la estructura:*/
     TIM_BaseStruct.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_BaseStruct.TIM_RepetitionCounter = 0;
-#+end_src
-
-Finalmente, se carga la inicialización en la estructura del timer y se comienza el conteo:
-
-#+begin_src c
     TIM_TimeBaseInit(TIM4, &TIM_BaseStruct);
+
+    /*Inicio del conteo:*/
     TIM_Cmd(TIM4, ENABLE);
 }
 #+end_src
@@ -369,18 +350,7 @@ Finalmente, se carga la inicialización en la estructura del timer y se comienza
 
 Esta función setea los canales PWM a las salidas PWM del servo.
 
-#+begin_src c
-void INIT_PWM(void){
-    TIM_OCInitTypeDef TIM_OCStruct;
-#+end_src
-
-Primero, se setea el PWM en modo 2, lo que indica que la señal se generará comenzando en estado bajo. Luego, se habilitan las salidas PWM y se indica la polaridad:
-
-#+begin_src c
-    TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
-    TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
-    TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
-#+end_src
+Primero, se setea el PWM en modo 2, lo que indica que la señal se generará comenzando en estado bajo. Luego, se habilitan las salidas PWM y se indica la polaridad.
 
 Ahora, para calcular el duty cycle de la señal:
 
@@ -388,21 +358,22 @@ Ahora, para calcular el duty cycle de la señal:
 
 donde dutyCycle está en porcentaje, entre 0% y 100%.
 
-Por tanto, se crea una variable para calcular el periódo de trabajo del TIM4:
+Por tanto, se crea una variable para calcular el periódo de trabajo del TIM4, llamada *Period*. Y entonces a partir de la misma se puede establecer el duty cycle del PWM.
+
+Finalmente se carga la incialización a la estructura y se activa la salida.
 
 #+begin_src c
-    uint32_t TIM_Period = SystemCoreClock / freqPWM - 1;
-#+end_src
+void INIT_PWM(void){
+    TIM_OCInitTypeDef TIM_OCStruct;
 
-Y entonces a partir de la misma se puede establecer el duty cycle del PWM:
+    TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;
+    TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;
+    TIM_OCStruct.TIM_OCPolarity = TIM_OCPolarity_Low;
 
-#+begin_src c
-    TIM_OCStruct.TIM_Pulse = ((TIM_Period + 1) * dutyCyclePWM) / 100 - 1;
-#+end_src
+    uint32_t Period= SystemCoreClock / freqPWM - 1;
 
-Finalmente se carga la incialización a la estructura:
+    TIM_OCStruct.TIM_Pulse = ((Period + 1) * dutyCyclePWM) / 100 - 1;
 
-#+begin_src c
     TIM_OC1Init(TIM4, &TIM_OCStruct);
     TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
 }
@@ -413,28 +384,20 @@ Aquí se describen las funciones relacionadas con el funcionamiento del servomot
 
 **** Inicialización:
 
-Esta función inicializa la salida correspondiente al servo con soporte para PWM disparado según el TIM4:
+Esta función inicializa la salida correspondiente al servo con soporte para PWM disparado según el TIM4.
+
+Se comienza habilitando el clock para el puerto donde estará la salida PWM (GPIOA - Pin 3). Configuración de la función alternante PWM disparada por el TIM4 para el pin correspondiente al servo.
+
+Se setea el pin finalmente y se carga en la estructura.
 
 #+begin_src c
 void INIT_SERVO(void){
     GPIO_InitTypeDef GPIO_InitStruct;
-#+end_src
 
-Se habilita el clock para el puerto donde estará la salida PWM (GPIOA - Pin 3):
-
-#+begin_src c
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-#+end_src
 
-Configuración de la función alternante PWM disparada por el TIM4 para el pin correspondiente al servo:
-
-#+begin_src c
     GPIO_PinAFConfig(_Servo, __servo, GPIO_AF_TIM4);
-#+end_src
 
-Se setea el pin finalmente y se carga en la estructura:
-
-#+begin_src c
     GPIO_InitStruct.GPIO_Pin = _servo;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
