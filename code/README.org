@@ -390,7 +390,6 @@ En el proyecto se utilizan las siguientes librerías:
 
  + *Librerías estándar:* contienen las funciones y códigos básicos para microcontroladores STM32F4XX. Esto incluye todas las funciones para cambiar estados de puertos (/GPIO_Set_Bit()/, etc.) y las específicas como de definición de estructuras.
  + *Control del clock:* contiene las funciones relacionadas al control del clock del MCU, como por ejemplo /RCC_AHB1PeriphClockCmd()/ y demás.
-   + *RECORDAR*: los pines configurados como analógicos *NO PUEDEN RECIBIR UN VOLTAJE MAYOR A 3 V*.
  + *Control de timers:* incluye las funciones /TIM_*()/ necesarias para la configuración de timers del MCU.
  + *Matemáticas:* incluye funciones para realizar operaciones matemáticas básicas en /C/, como sea /pow()/ y demás.
 
@@ -460,7 +459,24 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
    + *Nombre LCD:* se define el nombre del LCD como una constante.
    + *Estados LCD:* estructura utilizada para distinguir los distinto estados del LCD.
    + *Crear LCD:* estructura utilizada para crear el objeto LCD sobre el cuál se aplicarán las funciones.
+
  + *Hardware:* se definen los pines en los que se conectan los elementos de hardware del sistema. Estos son:
+   + *LCD:* pines conectados según:
+
+     |------+------+------+-----+------+------+------|
+     | RS   | E    | D4   | D5  | D6   | D7   | BL   |
+     |------+------+------+-----+------+------+------|
+     | PE13 | PF15 | PF13 | PE9 | PE11 | PF14 | PG14 |
+     |------+------+------+-----+------+------+------|
+
+   + *Pulsadores:* conectados en los siguientes pines:
+
+     |-----+-----+-----+-----|
+     | F1  | F2  | C1  | C2  |
+     |-----+-----+-----+-----|
+     | PC9 | PB8 | PC6 | PC8 |
+     |-----+-----+-----+-----|
+
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
 
 #+begin_src c
@@ -516,6 +532,25 @@ typedef struct {
 }LCD_2X16_t;
 
 /* - - - - HARDWARE - - - -*/
+/*Definicion de pines del LCD:*/
+LCD_2X16_t LCD_2X16[] = {
+    /* Name  , PORT ,     PIN    ,         CLOCK       ,   Init    */
+    { TLCD_RS, GPIOE, GPIO_Pin_13, RCC_AHB1Periph_GPIOE, Bit_RESET },
+    { TLCD_E,  GPIOF, GPIO_Pin_15, RCC_AHB1Periph_GPIOF, Bit_RESET },
+    { TLCD_D4, GPIOF, GPIO_Pin_13, RCC_AHB1Periph_GPIOF, Bit_RESET },
+    { TLCD_D5, GPIOE, GPIO_Pin_9,  RCC_AHB1Periph_GPIOE, Bit_RESET },
+    { TLCD_D6, GPIOE, GPIO_Pin_11, RCC_AHB1Periph_GPIOE, Bit_RESET },
+    { TLCD_D7, GPIOF, GPIO_Pin_14, RCC_AHB1Periph_GPIOF, Bit_RESET },};
+
+/*Pulsadores:*/
+#define _F1 GPIOC
+#define _f1 GPIO_Pin_9
+#define _F2 GPIOB
+#define _f2 GPIO_Pin_8
+#define _C1 GPIOC
+#define _c1 GPIO_Pin_6
+#define _C2 GPIOC
+#define _c2 GPIO_Pin_8
 
 /* - - - - PARAMS. - - - -*/
 
