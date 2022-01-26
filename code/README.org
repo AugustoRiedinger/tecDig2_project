@@ -11,13 +11,11 @@
   - [[#interrupciones][INTERRUPCIONES]]
   - [[#funciones-locales][FUNCIONES LOCALES]]
 - [[#erdytc][ERDYTC:]]
-  - [[#librerías-utilizadas][Librerías utilizadas:]]
-  - [[#estructuras][Estructuras:]]
-  - [[#definición-de-constantes][Definición de constantes:]]
-  - [[#definición-de-funciones-locales][Definición de funciones locales:]]
-  - [[#main-1][Main:]]
-  - [[#interrupciones-1][Interrupciones:]]
-  - [[#funciones-locales-1][Funciones locales:]]
+  - [[#librerias-1][LIBRERIAS]]
+  - [[#definiciones-1][DEFINICIONES]]
+  - [[#main-1][MAIN]]
+  - [[#interrupciones-1][INTERRUPCIONES]]
+  - [[#funciones-locales-1][FUNCIONES LOCALES]]
 
 * SOBRE EL PROYECTO
 
@@ -386,90 +384,89 @@ void INIT_SERVO(void){
 
 Aquí realizar una descripción más detallada del sistema, poner fotos de placas, prototipo físico terminado, etc.
 
-** Librerías utilizadas:
+** LIBRERIAS
 
-Aquí se muestran las librerías utilizadas en el diseño del sistema.
+En el proyecto se utilizan las siguientes librerías:
 
- + Librería estándar, con las funciones y códigos básicos para microcontroladores STM32F4XX:
+ + *Librerías estándar:* contienen las funciones y códigos básicos para microcontroladores STM32F4XX. Esto incluye todas las funciones para cambiar estados de puertos (/GPIO_Set_Bit()/, etc.) y las específicas como de definición de estructuras.
+ + *Control del clock:* contiene las funciones relacionadas al control del clock del MCU, como por ejemplo /RCC_AHB1PeriphClockCmd()/ y demás.
+   + *RECORDAR*: los pines configurados como analógicos *NO PUEDEN RECIBIR UN VOLTAJE MAYOR A 3 V*.
+ + *Control de timers:* incluye las funciones /TIM_*()/ necesarias para la configuración de timers del MCU.
+ + *Matemáticas:* incluye funciones para realizar operaciones matemáticas básicas en /C/, como sea /pow()/ y demás.
 
 #+begin_src c
+/*----------------------------------------------------------------*/
+/*LIBRERIAS:                                                      */
+/*----------------------------------------------------------------*/
+/*Librerias estandar:*/
 #include "stm32f4xx.h"
 #include "stm32f4xx_gpio.h"
 #include "stdio.h"
 #include "misc.h"
-#+end_src
 
- + Librería para el control del CLOCK del MCU:
-
-#+begin_src c
+/*Control del clock:*/
 #include "stm32f4xx_rcc.h"
-#+end_src
 
- + Librería para el control de TIMERS:
-
-#+begin_src c
+/*Control de timers:*/
 #include "stm32f4xx_tim.h"
-#+end_src
 
- + Libería para habilitar funciones matemáticas, como /pow()/:
-
-#+begin_src c
+/*Matematicas:*/
 #include "math.h"
 #+end_src
 
-** Estructuras:
+** DEFINICIONES
 
-En esta sección se declaran las diferentes estructuras utilizadas para la configuración de pines del MCU.
-
-*** General:
-
-La siguiente es la estructura para configuración de pines como salidas digitales:
+En esta sección se declaran diferentes parámetros con valores fijos que se utilizarán luego a lo largo del código. El propósito de esto yace en independizar los valores abstractos y en su lugar utilizar nombres que ayuden a la interpretación del código.
 
 #+begin_src c
-GPIO_InitTypeDef    GPIO_InitStructure;
+/*----------------------------------------------------------------*/
+/*DEFINICIONES:                                                   */
+/*----------------------------------------------------------------*/
 #+end_src
 
-La siguiente es la estructura para la configuración y habilitación de interrupciones (por vencimiento de cuenta de TIMER, por DMA, etc.):
+*** ESTRUCTURAS
+
+En esta sección se declaran las diferentes estructuras utilizadas para la configuración de pines del MCU:
+
+ + *General:* son estructuras genéricas que se utilzan para la configuración de aplicaciones básicas del MCU. Estas son:
+   + Configuración de pines como salidas digitales.
+   + Habilitacion de interrupciones.
+   + Configuración de interrupciones externas.
+ + *TIMERS:* utilizadas en la configuración de timers del MCU.
+ + *DMA:* utilizadas para la habilitación del /Acceso Directo a Memoria/.
 
 #+begin_src c
-NVIC_InitTypeDef    NVIC_InitStructure;
-#+end_src
+/* * * * * * * * * * * * * ESTRUCTURAS * * * * * * * * * * * * */
+/*General:*/
+GPIO_InitTypeDef        GPIO_InitStructure;
+NVIC_InitTypeDef        NVIC_InitStructure;
+EXTI_InitTypeDef        EXTI_InitStructure;
 
-La siguiente estructura se utiliza para configurar interrupciones externas; principalmente utilizada para interrupir según el estado de una entrada digital (pulsador, etc.):
-
-#+begin_src c
-EXTI_InitTypeDef   EXTI_InitStructure;
-#+end_src
-
-*** TIMERS:
-
-Las siguientes estructuras se utilizan en la configuración de TIMERS del MCU:
-
-#+begin_src c
+/*TIMERS*/
 TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 TIM_OCInitTypeDef       TIM_OCInitStructure;
+
+/*DMA*/
+DMA_InitTypeDef         DMA_InitStructure;
 #+end_src
 
-*** DMA:
+*** CONSTANTES
 
-La siguiente estructura se utiliza en la configuración y habilitación de la funcionalidad de DMA (/Acceso Directo a Memoria/):
+Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pines que se utilizan en el hardware, como variables que poseen un valor fijo:
 
-#+begin_src c
-DMA_InitTypeDef     DMA_InitStructure;
-#+end_src
-
-** Definición de constantes:
-En esta sección se definen constantes a utilizar en el resto del código.
-
-*** Hardware:
-
-Aquí se definen como constantes los pines que se utilizarán en el hardware.
-
-*** LCD:
-
-Aquí se definen distintas constantes que se utilizan en las funciones de control del LCD:
+ + *LCD:* se definen variables de valor fijo, constantes y estructuras que se utilizan en las funciones de manejo del LCD. Estas son:
+   + *Constantes varias:* utilizadas para reemplazar determinados valores en las funciones del LCD.
+   + *Identificación pines:* estructura que se utiliza para nombrar a los pines del LCD en la definición del mismo.
+   + *Nombre LCD:* se define el nombre del LCD como una constante.
+   + *Estados LCD:* estructura utilizada para distinguir los distinto estados del LCD.
+   + *Crear LCD:* estructura utilizada para crear el objeto LCD sobre el cuál se aplicarán las funciones.
+ + *Hardware:* se definen los pines en los que se conectan los elementos de hardware del sistema. Estos son:
+ + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
 
 #+begin_src c
+/* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
+/* - - - -   LCD   - - - -*/
+/*Constantes varias:*/
 #define  TLCD_INIT_PAUSE        100000
 #define  TLCD_PAUSE             50000
 #define  TLCD_CLK_PAUSE         1000
@@ -486,11 +483,8 @@ Aquí se definen distintas constantes que se utilizan en las funciones de contro
 #define  TLCD_CMD_DISP_M2       0x0E
 #define  TLCD_CMD_DISP_M3       0x0F
 #define  TLCD_CMD_CLEAR         0x01
-#+end_src
 
-La estructura para identificar los pines del LCD:
-
-#+begin_src c
+/*Identificacion pines:*/
 typedef enum
 {
   TLCD_RS = 0,  // RS-Pin
@@ -500,28 +494,19 @@ typedef enum
   TLCD_D6 = 4,  // DB6-Pin
   TLCD_D7 = 5   // DB7-Pin
 }TLCD_NAME_t;
-#+end_src
 
-Se define el nombre del LCD como una constante:
-
-#+begin_src c
+/*Nombre LCD:*/
 #define  TLCD_ANZ   6
-#+end_src
 
-Y se crea una estructura con los estados del mismo:
-
-#+begin_src c
+/*Estados LCD:*/
 typedef enum {
   TLCD_OFF = 0,
   TLCD_ON,
   TLCD_CURSOR,
   TLCD_BLINK
 }TLCD_MODE_t;
-#+end_src
 
-Finalmente la estructura para crear el objeto LCD (de 2x16 que se utilizará en este caso):
-
-#+begin_src c
+/*Crear LCD:*/
 typedef struct {
   TLCD_NAME_t TLCD_NAME;
   GPIO_TypeDef* TLCD_PORT;
@@ -529,29 +514,40 @@ typedef struct {
   const uint32_t TLCD_CLK;
   BitAction TLCD_INIT;
 }LCD_2X16_t;
+
+/* - - - - HARDWARE - - - -*/
+
+/* - - - - PARAMS. - - - -*/
+
 #+end_src
 
-** Definición de funciones locales:
+*** FUNCIONES LOCALES
 
-En esta sección se definen las distintas funciones a utilizar en el código local.
+En esta sección se definen los encabezados de las distintas funciones a utilizar en el código local:
 
-*** General:
-
-Aquí se definen funciones locales que son utilizadas por varias componentes del código.
-
-Función para determinar el nombre formal del clock para un determinado puerto:
-
- + *Returns*: /uint32_t/ con el dato del CLOCK.
- + *Params.*: Nombre del puerto a determinar.
-
+ + *Parámetros LCD:* funciones utilizadas en el background para determinar varias cualidades del LCD. Son principalmente utilizadas por otras funciones para conseguir parámetros del LCD.
+ + *Inicialización LCD:* función para inicializar los pines del LCD según el objeto /LCD_2X16/ definido a partir de los pines del hardware.
+   + *Returns*: void.
+   + *Params.*: Matriz tipo LCD_2X16_t con los pines detallados del LCD.
+ + *Refrescar LCD:* función utilizada para reiniciar la pantalla del LCD. Normalmente se usa para actualizar los valores mostrados en pantalla.
+   + *Returns*: void.
+   + *Params.*: Matriz tipo LCD_2X16_t con los pines detallados del LCD.
+ + *Imprimir LCD:* función utilizada para imprimir en el LCD una string introducida por el usuario.
+   + *Returns*: void
+   + *Params.*:
+     + Matriz tipo LCD_2X16_t con los pines detallados del LCD.
+     + Un indicador /x/ para indentificar la columna del LCD donde se iniciará la string.
+     + Un indicardor /y/ para identificar la fila del LCD donde se iniciará la string.
+     + Una string o puntero a la misma.
+ + *Encontrar CLOCK:* función utilizada para definir el CLOCK correspondiente a un determinado puerto en las funciones.
+   + *Returns*: /uint32_t/ con el dato del CLOCK.
+   + *Params.*: Nombre del puerto a determinar.
+ + *Inicialización TIM3:* función para incializar el TIM3 del MCU con una determinada frecuencia.
+   + *Returns*: void.
+   + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
 #+begin_src c
-uint32_t FIND_CLOCK(GPIO_TypeDef* Port);
-#+end_src
-*** LCD:
-
-Las siguientes funciones se definen para determinar varios parámetros y cualidades del display LCD:
-
-#+begin_src c
+/* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
+/*Parametros LCD:*/
 void P_LCD_2x16_InitIO(LCD_2X16_t* LCD_2X16);
 void P_LCD_2x16_PinLo(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16);
 void P_LCD_2x16_PinHi(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16);
@@ -561,90 +557,85 @@ void P_LCD_2x16_Clk(LCD_2X16_t* LCD_2X16);
 void P_LCD_2x16_Cmd(uint8_t wert, LCD_2X16_t* LCD_2X16);
 void P_LCD_2x16_Cursor(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y);
 void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16);
-#+end_src
 
-Función para inicializar los pines del LCD:
-
- + *Returns*: void.
- + *Params.*: Matriz tipo LCD_2X16_t con los pines detallados del LCD.
-
-#+begin_src c
+/*Inicializacion LCD:*/
 void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16);
-#+end_src
 
-Función para refrescar la pantalla del LCD:
-
- + *Returns*: void.
- + *Params.*: Matriz tipo LCD_2X16_t con los pines detallados del LCD.
-
-#+begin_src c
+/*Refrescar LCD:*/
 void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16);
-#+end_src
 
-Función para para imprimir una string dictada por el usuario en la pantalla del LCD:
-
- + *Returns*: void.
- + *Params.*:
-   + Matriz tipo LCD_2X16_t con los pines detallados del LCD.
-   + Un indicador /x/ para indentificar la columna del LCD donde se iniciará la string.
-   + Un indicardor /y/ para identificar la fila del LCD donde se iniciará la string.
-   + Una string o puntero a la misma.
-
-#+begin_src c
+/*Imprimir LCD:*/
 void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr);
-#+end_src
 
-*** TIMERS:
-**** TIM3:
-Función para incializar el TIM3 del MCU con una determinada frecuencia.
-
- + *Returns*: void.
- + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
-
-#+begin_src c
+/*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
+
+/*Encontrar CLOCK:*/
+uint32_t FIND_CLOCK(GPIO_TypeDef* Port);
 #+end_src
 
-** Main:
+** MAIN
 
-En esta sección se encuentra la sección principal del código donde se inicializa y se llama a las funciones.
+En esta parte se encuentra la sección principal del código donde se inicializa y se llama a las funciones. Además, se realizan diferentes procesamientos en el bucle principal.
 
 #+begin_src c
+/*----------------------------------------------------------------*/
+/*MAIN:                                                           */
+/*----------------------------------------------------------------*/
 int main(void){
 #+end_src
 
-*** Inicialización:
+*** INICIALIZACION
 
 En esta sección se inicializan las diferentes componentes del código. Este el procesamiento inicial que se realiza cuando se enciende el sistema.
 
-Primeramente, se iniciliza el sistema según:
+Las funciones llamadas para inicializar son las siguientes:
+ + *Inicio del sistema:* función general de las librerías estándar para inicializar las funciones del MCU.
 
 #+begin_src c
+/* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
+    /*Inicio del sistema:*/
     SystemInit();
 #+end_src
 
-*** Bucle pincipal:
+*** BUCLE PPAL.:
 
 Esta sección muestra el bucle principal infinito del código:
 
 #+begin_src c
+/* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
   }
 }
 #+end_src
-** Interrupciones:
-** Funciones locales:
+
+** INTERRUPCIONES
+** FUNCIONES LOCALES
 
 En esta sección se implementan las diferentes funciones del código.
 
+#+begin_src c
+/*----------------------------------------------------------------*/
+/*FUNCIONES LOCALES:                                              */
+/*----------------------------------------------------------------*/
+#+end_src
+
 *** LCD:
 
-**** Internas:
+Primero se definen las funciones internas del LCD que se utilizan luego en las funciones activas. Estas son:
 
-Inicialización de los pines del display:
+ + Inicialización de los pines del LCD.
+ + Cambio de estados del LCD, para modificar un bit a alto o bajo.
+ + Retardo del LCD, utilizado solamente en funciones específicas del LCD.
+ + Inicialización secuencias LCD.
+ + Configuración del CLOCK del LCD.
+ + Definición de comandos del LCD.
+ + Análisis de datos del LCD.
 
 #+begin_src c
+/* * * * * * * * * * * * *     LCD    * * * * * * * * * * * * */
+/*Inicializacion pines LCD:*/
 void P_LCD_2x16_InitIO(LCD_2X16_t* LCD_2X16)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -670,11 +661,8 @@ void P_LCD_2x16_InitIO(LCD_2X16_t* LCD_2X16)
             P_LCD_2x16_PinHi(lcd_pin, LCD_2X16);
     }
 }
-#+end_src
 
-Cambiar el estado de un pin a alto o bajo:
-
-#+begin_src c
+/*Cambio de estados del LCD:*/
 void P_LCD_2x16_PinLo(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16)
 {
   LCD_2X16[lcd_pin].TLCD_PORT->BSRRH = LCD_2X16[lcd_pin].TLCD_PIN;
@@ -684,22 +672,16 @@ void P_LCD_2x16_PinHi(TLCD_NAME_t lcd_pin, LCD_2X16_t* LCD_2X16)
 {
   LCD_2X16[lcd_pin].TLCD_PORT->BSRRL = LCD_2X16[lcd_pin].TLCD_PIN;
 }
-#+end_src
 
-Retardo utilizado en las funciones del LCD:
-
-#+begin_src c
+/*Retardo LCD:*/
 void P_LCD_2x16_Delay(volatile uint32_t nCount)
 {
   while(nCount--)
   {
   }
 }
-#+end_src
 
-Inicialización de secuencia del LCD:
-
-#+begin_src c
+/*Inicializacion secuencia LCD:*/
 void P_LCD_2x16_InitSequenz(LCD_2X16_t* LCD_2X16)
 {
   //Inicializacion de la secuencia:
@@ -724,11 +706,8 @@ void P_LCD_2x16_InitSequenz(LCD_2X16_t* LCD_2X16)
   P_LCD_2x16_Clk(LCD_2X16);
   P_LCD_2x16_Delay(TLCD_PAUSE);
 }
-#+end_src
 
-Configuración del clock del LCD:
-
-#+begin_src c
+/*Configuracion CLOCK LCD:*/
 void P_LCD_2x16_Clk(LCD_2X16_t* LCD_2X16)
 {
   // Pin-E auf Hi
@@ -740,11 +719,8 @@ void P_LCD_2x16_Clk(LCD_2X16_t* LCD_2X16)
   // kleine Pause
   P_LCD_2x16_Delay(TLCD_CLK_PAUSE);
 }
-#+end_src
 
-Comandos utilizados en las funciones del LCD:
-
-#+begin_src c
+/*Comandos LCD:*/
 void P_LCD_2x16_Cmd(uint8_t wert, LCD_2X16_t* LCD_2X16)
 {
   // RS=Lo (Command)
@@ -775,11 +751,8 @@ void P_LCD_2x16_Cursor(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y)
   wert|=0x80;
   P_LCD_2x16_Cmd(wert,LCD_2X16);
 }
-#+end_src
 
-Análisis de datos del LCD:
-
-#+begin_src c
+/*Analisis de datos LCD:*/
 void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16)
 {
   // RS=Hi (Data)
@@ -798,11 +771,15 @@ void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16)
   P_LCD_2x16_Clk(LCD_2X16);
 }
 #+end_src
-**** Funcionalidad:
 
-***** Inicialización de los pines del LCD:
+Luego, se definen las funciones activas que se utilizarán en la parte de funcionalidad del código. Estas son:
+
+ + Incialización de los pines del LCD.
+ + Refresco de la pantalla del LCD.
+ + Impresión en la pantalla del LCD.
 
 #+begin_src c
+/*Inicializacion de los pines del LCD:*/
 void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
 {
     //Inicialización de los pines del LCD:
@@ -821,10 +798,8 @@ void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
     // kleine Pause
     P_LCD_2x16_Delay(TLCD_PAUSE);
 }
-#+end_src
-***** Refresco de pantalla:
 
-#+begin_src c
+/*Refresco de la pantalla del LCD:*/
 void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
 {
   // Display l�schen
@@ -832,10 +807,8 @@ void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
   // kleine Pause
   P_LCD_2x16_Delay(TLCD_PAUSE);
 }
-#+end_src
-***** Imprimir en pantalla:
 
-#+begin_src c
+/*Impresion en la pantalla del LCD:*/
 void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
 {
   // Cursor setzen
