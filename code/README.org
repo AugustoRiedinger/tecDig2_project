@@ -1,27 +1,25 @@
 #+TITLE: Sistema de adquisición de datos y lógica digital base para implementación en CubeSats
 #+AUTHOR: A. Riedinger & G. Garcia
 
-* Índice :toc:
-- [[#sobre-el-proyecto][Sobre el proyecto:]]
-- [[#estructura-del-código][Estructura del código:]]
-- [[#satdac][SATDAC:]]
-  - [[#librerias-utilizadas][Librerias utilizadas:]]
+* ÍNDICE :toc:
+- [[#sobre-el-proyecto][SOBRE EL PROYECTO]]
+- [[#estructura-y-reglas][ESTRUCTURA Y REGLAS]]
+- [[#satdac][SATDAC]]
+  - [[#librerias][LIBRERIAS]]
+  - [[#definiciones][DEFINICIONES]]
+  - [[#main][MAIN]]
+  - [[#interrupciones][INTERRUPCIONES]]
+  - [[#funciones-locales][FUNCIONES LOCALES]]
+- [[#erdytc][ERDYTC:]]
+  - [[#librerías-utilizadas][Librerías utilizadas:]]
   - [[#estructuras][Estructuras:]]
   - [[#definición-de-constantes][Definición de constantes:]]
   - [[#definición-de-funciones-locales][Definición de funciones locales:]]
-  - [[#main][Main:]]
-  - [[#interrupciones][Interrupciones:]]
-  - [[#funciones-locales][Funciones locales:]]
-- [[#erdytc][ERDYTC:]]
-  - [[#librerías-utilizadas][Librerías utilizadas:]]
-  - [[#estructuras-1][Estructuras:]]
-  - [[#definición-de-constantes-1][Definición de constantes:]]
-  - [[#definición-de-funciones-locales-1][Definición de funciones locales:]]
   - [[#main-1][Main:]]
   - [[#interrupciones-1][Interrupciones:]]
   - [[#funciones-locales-1][Funciones locales:]]
 
-* Sobre el proyecto:
+* SOBRE EL PROYECTO
 
 El objetivo del proyecto es construir la base lógica digital inicial, como *prueba de concepto*, para aplicación en un CubeSat.
 
@@ -44,7 +42,7 @@ Y la ERDYTC las siguientes:
  + Ingreso de comandos por usuario y transmisión de los mismos.
  + Almacenamiento en memoria externa.
  + Recepción y transmisión de datos por RF.
-* Estructura del código:
+* ESTRUCTURA Y REGLAS
 
 El sistema completo contará con dos codigos interdependientes, pero que se cargan a MCU distintos. Se identifican como SATDAC (cargado a BlackPill según /code//satdac//src//main.c/) y ERDYTC (cargado a NUCLEO según /code//erdytc//src//main.c/)). La edición de los archivos se realizó en Doom Emacs y se utilizó la herramienta de ST Atollic TRUEStudio para cargar los códigos a los MCU y para debuggear.
 
@@ -67,236 +65,211 @@ Para la síntesis del código se utilizan las siguientes reglas:
  + Variables o definiciones que identifican puertos de la placa se describen con un guión bajo al inicio y la primer letra en mayúsculas. Ej.: *_Led = GPIOx*.
  + Variables o definiciones que identifican pinSources se describen con dos guiones bajos al inicio. Ej.: *__led = GPIO_PinSourcex*.
 
-* SATDAC:
+* SATDAC
 :PROPERTIES:
 :header-args: :tangle satdac/src/main.c
 :END:
 
 Aquí realizar una descripción más detallada del SATDAC, poner fotos de placas, prototipo físico terminado, etc.
 
-** Librerias utilizadas:
+** LIBRERIAS
 
-Aquí se muestran las librerías utilizadas en el diseño del sistema.
+En el proyecto se utilizan las siguientes librerías:
 
- + Librería estándar, con las funciones y códigos básicos para microcontroladores STM32F4XX:
+ + *Librerías estándar:* contienen las funciones y códigos básicos para microcontroladores STM32F4XX. Esto incluye todas las funciones para cambiar estados de puertos (/GPIO_Set_Bit()/, etc.) y las específicas como de definición de estructuras.
+ + *Control del clock:* contiene las funciones relacionadas al control del clock del MCU, como por ejemplo /RCC_AHB1PeriphClockCmd()/ y demás.
+ + *Control de pines analógicos:* contiene las funciones necesarias para configurar determinados como analógicos.
+   + *RECORDAR*: los pines configurados como analógicos *NO PUEDEN RECIBIR UN VOLTAJE MAYOR A 3 V*.
+ + *Control de timers:* incluye las funciones /TIM_*()/ necesarias para la configuración de timers del MCU.
+ + *Matemáticas:* incluye funciones para realizar operaciones matemáticas básicas en /C/, como sea /pow()/ y demás.
 
 #+begin_src c
+/*----------------------------------------------------------------*/
+/*LIBRERIAS:                                                      */
+/*----------------------------------------------------------------*/
+/*Librerias estandar:*/
 #include "stm32f4xx.h"
 #include "stm32f4xx_gpio.h"
 #include "stdio.h"
 #include "misc.h"
-#+end_src
 
- + Librería para el control del CLOCK del MCU:
-
-#+begin_src c
+/*Control del clock:*/
 #include "stm32f4xx_rcc.h"
-#+end_src
 
- + Librería para el control de pines analógicos:
-
-#+begin_src c
+/*Control de pines analogicos*/
 #include "stm32f4xx_adc.h"
-#+end_src
 
- + Librería para el control de TIMERS:
-
-#+begin_src c
+/*Control de timers:*/
 #include "stm32f4xx_tim.h"
-#+end_src
 
- + Libería para habilitar funciones matemáticas, como /pow()/:
-
-#+begin_src c
+/*Matematicas:*/
 #include "math.h"
 #+end_src
-** Estructuras:
 
-En esta sección se declaran las diferentes estructuras utilizadas para la configuración de pines del MCU.
+** DEFINICIONES
 
-*** General:
-
-La siguiente es la estructura para configuración de pines como salidas digitales:
+En esta sección se declaran diferentes parámetros con valores fijos que se utilizarán luego a lo largo del código. El propósito de esto yace en independizar los valores abstractos y en su lugar utilizar nombres que ayuden a la interpretación del código.
 
 #+begin_src c
-GPIO_InitTypeDef    GPIO_InitStructure;
+/*----------------------------------------------------------------*/
+/*DEFINICIONES:                                                   */
+/*----------------------------------------------------------------*/
 #+end_src
 
-La siguiente es la estructura para la configuración y habilitación de interrupciones (por vencimiento de cuenta de TIMER, por DMA, etc.):
+*** ESTRUCTURAS
+
+En esta sección se declaran las diferentes estructuras utilizadas para la configuración de pines del MCU:
+
+ + *General:* son estructuras genéricas que se utilzan para la configuración de aplicaciones básicas del MCU. Estas son:
+   + Configuración de pines como salidas digitales.
+   + Habilitacion de interrupciones.
+   + Configuración de interrupciones externas.
+ + *ADC:* utilizadas para la inicialización de pines como convertores analógico/digital.
+ + *TIMERS:* utilizadas en la configuración de timers del MCU.
+ + *DMA:* utilizadas para la habilitación del /Acceso Directo a Memoria/.
 
 #+begin_src c
-NVIC_InitTypeDef    NVIC_InitStructure;
-#+end_src
+/* * * * * * * * * * * * * ESTRUCTURAS * * * * * * * * * * * * */
+/*General:*/
+GPIO_InitTypeDef        GPIO_InitStructure;
+NVIC_InitTypeDef        NVIC_InitStructure;
+EXTI_InitTypeDef        EXTI_InitStructure;
 
-La siguiente estructura se utiliza para configurar interrupciones externas; principalmente utilizada para interrupir según el estado de una entrada digital (pulsador, etc.):
-
-#+begin_src c
-EXTI_InitTypeDef   EXTI_InitStructure;
-#+end_src
-
-*** ADC:
-
-Se definen las estructuras para inicializar pines como convertores analógico/digital:
-
-#+begin_src c
+/*ADC:*/
 ADC_InitTypeDef         ADC_InitStructure;
 ADC_CommonInitTypeDef   ADC_CommonInitStructure;
-#+end_src
-*** TIMERS:
 
-Las siguientes estructuras se utilizan en la configuración de TIMERS del MCU:
-
-#+begin_src c
+/*TIMERS*/
 TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 TIM_OCInitTypeDef       TIM_OCInitStructure;
+
+/*DMA*/
+DMA_InitTypeDef         DMA_InitStructure;
 #+end_src
 
-*** DMA:
+*** CONSTANTES
 
-La siguiente estructura se utiliza en la configuración y habilitación de la funcionalidad de DMA (/Acceso Directo a Memoria/):
+Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pines que se utilizan en el hardware, como variables que poseen un valor fijo:
 
-#+begin_src c
-DMA_InitTypeDef     DMA_InitStructure;
-#+end_src
-
-** Definición de constantes:
-En esta sección se definen constantes a utilizar en el resto del código.
-
-*** Hardware:
-
-Aquí se definen como constantes los pines que se utilizarán en el hardware.
-
-**** Servomotor:
+ + *Hardware:* se definen los pines en los que se conectan los elementos de hardware del sistema. Estos son:
+   + *Servomotor:* conectado en el pin PA3.
+ + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
+   + *Frecuencia PWM:* utilizada para el control del servomotor; su valor DEBE ser dado en Herzios (/Hz/).
+   + *Ciclo de trabajo PWM:* define el duty cycle de la onda de salida PWM para controlar el servomotor.
 
 #+begin_src c
+/* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
+/* - - - - HARDWARE - - - -*/
+/*Servomotor:*/
 #define _Servo      GPIOA
 #define _servo      GPIO_Pin_3
 #define __servo     GPIO_PinSource3
-#+end_src
 
-#+RESULTS:
-
-*** Servomotor:
-
-Frecuencia del PWM en Hz que controlorá el servomotor:
-
-#+begin_src c
+/* - - - - PARAMS. - - - -*/
+/*Frecuencia PWM:*/
 #define freqPWM 10e3
-#+end_src
 
-Ciclo de trabajo que definará la onda de salida PWM:
-
-#+begin_src c
+/*Ciclo de trabajo PWM:*/
 #define dutyCyclePWM 50
 #+end_src
 
-** Definición de funciones locales:
+*** FUNCIONES LOCALES
 
-En esta sección se definen las distintas funciones a utilizar en el código local.
+En esta sección se definen los encabezados de las distintas funciones a utilizar en el código local:
 
-*** TIMERS:
-**** TIM3:
-Función para incializar el TIM3 del MCU con una determinada frecuencia.
-
- + *Returns*: void.
- + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
+ + *Inicialización TIM3:* función para incializar el TIM3 del MCU con una determinada frecuencia.
+   + *Returns*: void.
+   + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
+ + *Inicialización TIM4:* función para inicializar el TIM4 para el control de la salida PWM necesaria para el control del servomotor.
+   + *Returns*: void.
+   + *Params* : void.
+ + *Inicialización PWM:* función para inicializar las salidas PWM4.
+   + *Returns*: void.
+   + *Params* : void.
+ + *Inicialización servo:* Función para inicializar la salida del servomotor como PWM:
+   + *Returns*: void.
+   + *Params* : void.
+ + *Mover servo:* Función para iniciar el proceso de movimiento del servomotor.
+   + *Returns*: void.
+   + *Params* : void.
 
 #+begin_src c
+/* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
+/*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
-#+end_src
 
-**** TIM4:
-
-Función para inicializar el TIM4 para el control de la salida PWM necesaria para el control del servomotor:
-
- + *Returns*: void.
- + *Params* : void.
-
-#+begin_src c
+/*Inicializacion TIM4:*/
 void INIT_TIMPWM(void);
-#+end_src
 
-Función para inicializar las salidas PWM4:
-
- + *Returns*: void.
- + *Params* : void.
-
-#+begin_src c
+/*Inicializacion PWM:*/
 void INIT_PWM(void);
-#+end_src
 
-*** Servomotor:
-
-Función para inicializar la salida del servomotor como PWM:
-
- + *Returns*: void.
- + *Params* : void.
-
-#+begin_src c
+/*Inicializacion servo:*/
 void INIT_SERVO(void);
-#+end_src
 
-Función para iniciar el proceso de movimiento del servomotor.
-
- + *Returns*: void.
- + *Params* : void.
-
-#+begin_src c
+/*Mover servo:*/
 void MOVE_SERVO(void);
 #+end_src
 
-** Main:
+** MAIN
 
-En esta sección se encuentra la sección principal del código donde se inicializa y se llama a las funciones.
+En esta parte se encuentra la sección principal del código donde se inicializa y se llama a las funciones. Además, se realizan diferentes procesamientos en el bucle principal.
 
 #+begin_src c
+/*----------------------------------------------------------------*/
+/*MAIN:                                                           */
+/*----------------------------------------------------------------*/
 int main(void){
 #+end_src
 
-*** Inicialización:
+*** INICIALIZACION
 
 En esta sección se inicializan las diferentes componentes del código. Este el procesamiento inicial que se realiza cuando se enciende el sistema.
 
-Primeramente, se iniciliza el sistema según:
+Las funciones llamadas para inicializar son las siguientes:
+ + *Inicio del sistema:* función general de las librerías estándar para inicializar las funciones del MCU.
+ + *Inicialización de timers:* se llama a las funciones de inicialización de timers descritas en la sección de definciones. Estas son:
+   + Inicialización del TIM3.
+   + Inicialización del TIM4.
+   + Inicialización del PWM.
+ + *Servomotor:* se inicializan las funciones relacionadas al manejo del servomotor. Estas son:
+   + Inicialización de la salida del servo.
 
 #+begin_src c
+/* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
+    /*Inicio del sistema:*/
     SystemInit();
-#+end_src
 
-**** TIMERS:
-
-Inicialización del TIM4 para el control del tiempo del PWM:
-
-#+begin_src c
+    /*Inicializacion de timers:*/
     INIT_TIMPWM();
-#+end_src
-
-Inicialización del PWM:
-
-#+begin_src c
     INIT_PWM();
-#+end_src
-**** Servomotor:
 
-Se inicializa el servomotor a la frecuencia /freqPWM/ establecida y con el /dutyCyclePWM/ seteado:
-
-#+begin_src c
+    /*Servomotor:*/
     INIT_SERVO();
 #+end_src
 
-*** Bucle pincipal:
+*** BUCLE PPAL.:
 
 Esta sección muestra el bucle principal infinito del código:
 
 #+begin_src c
+/* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
   }
 }
 #+end_src
-** Interrupciones:
-** Funciones locales:
+** INTERRUPCIONES
+** FUNCIONES LOCALES
+
 En esta sección se implementan las diferentes funciones del código.
+
+#+begin_src c
+/*----------------------------------------------------------------*/
+/*FUNCIONES LOCALES:                                              */
+/*----------------------------------------------------------------*/
+#+end_src
+
 *** TIMERS:
 **** TIM4:
 Este es el TIMER utilizado para el control de la salida PWM.

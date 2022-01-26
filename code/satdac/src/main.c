@@ -1,62 +1,100 @@
+/*----------------------------------------------------------------*/
+/*LIBRERIAS:                                                      */
+/*----------------------------------------------------------------*/
+/*Librerias estandar:*/
 #include "stm32f4xx.h"
 #include "stm32f4xx_gpio.h"
 #include "stdio.h"
 #include "misc.h"
 
+/*Control del clock:*/
 #include "stm32f4xx_rcc.h"
 
+/*Control de pines analogicos*/
 #include "stm32f4xx_adc.h"
 
+/*Control de timers:*/
 #include "stm32f4xx_tim.h"
 
+/*Matematicas:*/
 #include "math.h"
 
-GPIO_InitTypeDef    GPIO_InitStructure;
+/*----------------------------------------------------------------*/
+/*DEFINICIONES:                                                   */
+/*----------------------------------------------------------------*/
 
-NVIC_InitTypeDef    NVIC_InitStructure;
+/* * * * * * * * * * * * * ESTRUCTURAS * * * * * * * * * * * * */
+/*General:*/
+GPIO_InitTypeDef        GPIO_InitStructure;
+NVIC_InitTypeDef        NVIC_InitStructure;
+EXTI_InitTypeDef        EXTI_InitStructure;
 
-EXTI_InitTypeDef   EXTI_InitStructure;
-
+/*ADC:*/
 ADC_InitTypeDef         ADC_InitStructure;
 ADC_CommonInitTypeDef   ADC_CommonInitStructure;
 
+/*TIMERS*/
 TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 TIM_OCInitTypeDef       TIM_OCInitStructure;
 
-DMA_InitTypeDef     DMA_InitStructure;
+/*DMA*/
+DMA_InitTypeDef         DMA_InitStructure;
 
+/* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
+/* - - - - HARDWARE - - - -*/
+/*Servomotor:*/
 #define _Servo      GPIOA
 #define _servo      GPIO_Pin_3
 #define __servo     GPIO_PinSource3
 
+/* - - - - PARAMS. - - - -*/
+/*Frecuencia PWM:*/
 #define freqPWM 10e3
 
+/*Ciclo de trabajo PWM:*/
 #define dutyCyclePWM 50
 
+/* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
+/*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
 
+/*Inicializacion TIM4:*/
 void INIT_TIMPWM(void);
 
+/*Inicializacion PWM:*/
 void INIT_PWM(void);
 
+/*Inicializacion servo:*/
 void INIT_SERVO(void);
 
+/*Mover servo:*/
 void MOVE_SERVO(void);
 
+/*----------------------------------------------------------------*/
+/*MAIN:                                                           */
+/*----------------------------------------------------------------*/
 int main(void){
 
+/* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
+    /*Inicio del sistema:*/
     SystemInit();
 
+    /*Inicializacion de timers:*/
     INIT_TIMPWM();
-
     INIT_PWM();
 
+    /*Servomotor:*/
     INIT_SERVO();
 
+/* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
   }
 }
+
+/*----------------------------------------------------------------*/
+/*FUNCIONES LOCALES:                                              */
+/*----------------------------------------------------------------*/
 
 void INIT_TIMPWM(void){
     /*Declaracion estructura particular:*/
