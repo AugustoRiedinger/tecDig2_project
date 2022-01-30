@@ -478,6 +478,8 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
      |-----+-----+-----+-----|
 
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
+   + *Agotamiento de cuenta del TIM3:* se setea a una frecuencia de 4 Hz, equivalente a 250 mseg.
+
 
 #+begin_src c
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
@@ -553,7 +555,8 @@ LCD_2X16_t LCD_2X16[] = {
 #define _c2 GPIO_Pin_8
 
 /* - - - - PARAMS. - - - -*/
-
+/*Agotamiento de cuenta del TIM3:*/
+#define freqTIM3 4
 #+end_src
 
 *** FUNCIONES LOCALES
@@ -574,17 +577,20 @@ En esta sección se definen los encabezados de las distintas funciones a utiliza
      + Un indicador /x/ para indentificar la columna del LCD donde se iniciará la string.
      + Un indicardor /y/ para identificar la fila del LCD donde se iniciará la string.
      + Una string o puntero a la misma.
+ + *Inicialización de salida digital:* se inicializa un pin del MCU como salida digital a través de su puerto y número de pin.
+   + *Returns*: void
+   + *Params.*: puerto y pin a inicializar.
  + *Inicialización TIM3:* función para incializar el TIM3 del MCU con una determinada frecuencia.
    + *Returns*: void.
    + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
- + *Encontrar CLOCK:* función utilizada para definir el CLOCK correspondiente a un determinado puerto en las funciones.
-   + *Returns*: /uint32_t/ con el dato del CLOCK.
-   + *Params.*: Nombre del puerto a determinar.
  + *Configuración de interrupciones externas:* funciones utilizadas para habilitar las interrupciones externas; normalmente para interrumpir el MCU a través de entradas digitales.
    + *Inicialización EXTI:* se inicializa un pin del MCU para funcionar según la interrupción por entrada externa.
      + *Returns*: void.
      + *Params.*: Nombre del puerto y pin a configurar.
    + Las demás funciones **_EXTI_** se utilizan dentro de =INIT_EXTINT= para encontrar los parámetros correctos de los pines dados.
+ + *Encontrar CLOCK:* función utilizada para definir el CLOCK correspondiente a un determinado puerto en las funciones.
+   + *Returns*: /uint32_t/ con el dato del CLOCK.
+   + *Params.*: Nombre del puerto a determinar.
 
 #+begin_src c
 /* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
@@ -607,6 +613,9 @@ void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16);
 
 /*Imprimir LCD:*/
 void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr);
+
+/*Inicializacion de salida digital:*/
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin);
 
 /*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
@@ -639,11 +648,23 @@ En esta sección se inicializan las diferentes componentes del código. Este el 
 
 Las funciones llamadas para inicializar son las siguientes:
  + *Inicio del sistema:* función general de las librerías estándar para inicializar las funciones del MCU.
+ + *Inicialización del TIM3:* se configura a partir de una interrupción cada 250 mseg según =freqTIM3=. Se utiliza para controlar el refresco del LCD; y toda la lógica se puede encontrar en el handler de la interrupción al vencimiento =void TIM3_IRQHandler(void)=.
+ + *Inicialización de interrupciones por pulso externo:* se inicializan los cuatro pulsadores conectados en forma matricial. Los pulsadores C1 y C2 se inicialización como entradas (con interrupción); y los pulsadores F1 y F2 como salidas. De esta forma, se alterna el pulso alto en F1 y F2 para evaluar constantemente el estado de C1 y C2. Adicionalmente, se setea F1 (arbitrariamente) para que arranque con un valor distinto de F2.
 
 #+begin_src c
 /* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
     /*Inicio del sistema:*/
     SystemInit();
+
+    /*Inicializacion del TIM3:*/
+    INIT_TIM3(freqTIM3);
+
+    /*Inicializacion interrupciones por pulso externo:*/
+    INIT_EXTINT(_C1,_c1);
+    INIT_EXTINT(_C2,_c2);
+    INIT_DO(_F1,_f1);
+    INIT_DO(_F2,_f2);
+    GPIO_SetBits(_F1, _f1);
 #+end_src
 
 *** BUCLE PPAL.:
@@ -659,6 +680,51 @@ Esta sección muestra el bucle principal infinito del código:
 #+end_src
 
 ** INTERRUPCIONES
+#+begin_src c
+/*----------------------------------------------------------------*/
+/*INTERRUPCIONES:                                                 */
+/*----------------------------------------------------------------*/
+#+end_src
+*** TIM3
+
+#+begin_src c
+/*Interrupcion al vencimiento de cuenta de TIM3 cada 1/FS:*/
+void TIM3_IRQHandler(void) {
+    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+
+        /*Rehabilitacion del timer:*/
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+    }
+}
+#+end_src
+*** EXTI
+#+begin_src c
+/*Interrupcion al pulso por PC6-C1 o PC8-C2:*/
+void EXTI9_5_IRQHandler(void)
+{
+  /*Si la interrupcion fue por linea 6 (PC6 - C1):*/
+  if(EXTI_GetITStatus(EXTI_Line6) != RESET){
+      /*Si ademas de estar C1 en 1 tambien esta F1 en 1, entonces el switch pulsado es S1:*/
+      if(GPIO_ReadInputDataBit(F1_Port, F1))       S1Cont = S1Cont + 1;
+      /*Si ademas de estar C1 en 1 tambien esta F2 en 1, entonces el switch pulsado es S2:*/
+      else if(GPIO_ReadInputDataBit(F2_Port, F2))  S2Cont = S2Cont + 2;
+
+      /*Clear the EXTI line 6 pending bit:*/
+      EXTI_ClearITPendingBit(EXTI_Line6);
+  }
+
+  /*Si la interrupcion fue por linea 8 (PC8 - C2):*/
+  else if(EXTI_GetITStatus(EXTI_Line8) != RESET){
+      /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
+      if (GPIO_ReadInputDataBit(F1_Port, F1))      S3Cont = S3Cont + 3;
+      /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
+      else if (GPIO_ReadInputDataBit(F2_Port, F2)) S4Cont = S4Cont + 4;
+
+      /*Clear the EXTI line 8 pending bit:*/
+      EXTI_ClearITPendingBit(EXTI_Line8);
+  }
+}
+#+end_src
 ** FUNCIONES LOCALES
 En esta sección se implementan las diferentes funciones del código.
 
@@ -668,6 +734,28 @@ En esta sección se implementan las diferentes funciones del código.
 /*----------------------------------------------------------------*/
 #+end_src
 *** General
+**** Inicialización de salida digital
+
+#+begin_src c
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin)
+{
+    /*Estructura de configuracion:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    /*Habilitacion de la senal de reloj para el periferico:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port), ENABLE);
+
+    /*Se configura el pin como entrada (GPI0_MODE_IN):*/
+    GPIO_InitStructure.GPIO_Pin = Pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+
+    /*Se aplica la configuracion definida anteriormente al puerto:*/
+    GPIO_Init(Port, &GPIO_InitStructure);
+}
+#+end_src
+
 **** Encontrar CLOCK
 #+begin_src c
 uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
@@ -684,8 +772,53 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
     return Clock;
 }
 #+end_src
+*** TIMERS
+**** Inicialización TIM3
 
-*** LCD:
+#+begin_src c
+/*Inicializacion del TIM3:*/
+void INIT_TIM3(uint32_t Freq)
+{
+
+    /*Habilitacion del clock para el TIM3:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    /*Habilitacion de la interrupcion por agotamiento de cuenta del TIM3:*/
+    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    /*Actualización de los valores del TIM3:*/
+    SystemCoreClockUpdate();
+    TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+    TIM_Cmd(TIM3, DISABLE);
+
+    /*Definicion de la base de tiempo:*/
+    uint32_t TimeBase = 200e3;
+
+    /*Computar el valor del preescaler en base a la base de tiempo:*/
+    uint16_t PrescalerValue = 0;
+    PrescalerValue = (uint16_t) ((SystemCoreClock / 2) / TimeBase) - 1;
+
+    /*Configuracion del tiempo de trabajo en base a la frecuencia:*/
+    TIM_TimeBaseStructure.TIM_Period = TimeBase / Freq - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+    /*Habilitacion de la interrupcion:*/
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+    /*Habilitacion del contador:*/
+    TIM_Cmd(TIM3, ENABLE);
+}
+#+end_src
+
+*** LCD
 
 Primero se definen las funciones internas del LCD que se utilizan luego en las funciones activas. Estas son:
 
@@ -884,7 +1017,7 @@ void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
   }
 }
 #+end_src
-*** EXTI:
+*** EXTI
 **** Habilitación de pin EXTI
 #+begin_src c
 void INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin)

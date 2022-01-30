@@ -106,6 +106,8 @@ LCD_2X16_t LCD_2X16[] = {
 #define _c2 GPIO_Pin_8
 
 /* - - - - PARAMS. - - - -*/
+/*Agotamiento de cuenta del TIM3:*/
+#define freqTIM3 4
 
 /* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
 /*Parametros LCD:*/
@@ -127,6 +129,9 @@ void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16);
 
 /*Imprimir LCD:*/
 void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr);
+
+/*Inicializacion de salida digital:*/
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin);
 
 /*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
@@ -150,6 +155,16 @@ int main(void){
     /*Inicio del sistema:*/
     SystemInit();
 
+    /*Inicializacion del TIM3:*/
+    INIT_TIM3(freqTIM3);
+
+    /*Inicializacion interrupciones por pulso externo:*/
+    INIT_EXTINT(_C1,_c1);
+    INIT_EXTINT(_C2,_c2);
+    INIT_DO(_F1,_f1);
+    INIT_DO(_F2,_f2);
+    GPIO_SetBits(_F1, _f1);
+
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
@@ -157,8 +172,65 @@ int main(void){
 }
 
 /*----------------------------------------------------------------*/
+/*INTERRUPCIONES:                                                 */
+/*----------------------------------------------------------------*/
+
+/*Interrupcion al vencimiento de cuenta de TIM3 cada 1/FS:*/
+void TIM3_IRQHandler(void) {
+    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+
+        /*Rehabilitacion del timer:*/
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+    }
+}
+
+/*Interrupcion al pulso por PC6-C1 o PC8-C2:*/
+void EXTI9_5_IRQHandler(void)
+{
+  /*Si la interrupcion fue por linea 6 (PC6 - C1):*/
+  if(EXTI_GetITStatus(EXTI_Line6) != RESET){
+      /*Si ademas de estar C1 en 1 tambien esta F1 en 1, entonces el switch pulsado es S1:*/
+      if(GPIO_ReadInputDataBit(F1_Port, F1))       S1Cont = S1Cont + 1;
+      /*Si ademas de estar C1 en 1 tambien esta F2 en 1, entonces el switch pulsado es S2:*/
+      else if(GPIO_ReadInputDataBit(F2_Port, F2))  S2Cont = S2Cont + 2;
+
+      /*Clear the EXTI line 6 pending bit:*/
+      EXTI_ClearITPendingBit(EXTI_Line6);
+  }
+
+  /*Si la interrupcion fue por linea 8 (PC8 - C2):*/
+  else if(EXTI_GetITStatus(EXTI_Line8) != RESET){
+      /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
+      if (GPIO_ReadInputDataBit(F1_Port, F1))      S3Cont = S3Cont + 3;
+      /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
+      else if (GPIO_ReadInputDataBit(F2_Port, F2)) S4Cont = S4Cont + 4;
+
+      /*Clear the EXTI line 8 pending bit:*/
+      EXTI_ClearITPendingBit(EXTI_Line8);
+  }
+}
+
+/*----------------------------------------------------------------*/
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
+
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin)
+{
+    /*Estructura de configuracion:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    /*Habilitacion de la senal de reloj para el periferico:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port), ENABLE);
+
+    /*Se configura el pin como entrada (GPI0_MODE_IN):*/
+    GPIO_InitStructure.GPIO_Pin = Pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+
+    /*Se aplica la configuracion definida anteriormente al puerto:*/
+    GPIO_Init(Port, &GPIO_InitStructure);
+}
 
 uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
 {
@@ -172,6 +244,47 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
     else if (Port == GPIOF) Clock = RCC_AHB1Periph_GPIOF;
     else if (Port == GPIOG) Clock = RCC_AHB1Periph_GPIOG;
     return Clock;
+}
+
+/*Inicializacion del TIM3:*/
+void INIT_TIM3(uint32_t Freq)
+{
+
+    /*Habilitacion del clock para el TIM3:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    /*Habilitacion de la interrupcion por agotamiento de cuenta del TIM3:*/
+    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    /*Actualización de los valores del TIM3:*/
+    SystemCoreClockUpdate();
+    TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+    TIM_Cmd(TIM3, DISABLE);
+
+    /*Definicion de la base de tiempo:*/
+    uint32_t TimeBase = 200e3;
+
+    /*Computar el valor del preescaler en base a la base de tiempo:*/
+    uint16_t PrescalerValue = 0;
+    PrescalerValue = (uint16_t) ((SystemCoreClock / 2) / TimeBase) - 1;
+
+    /*Configuracion del tiempo de trabajo en base a la frecuencia:*/
+    TIM_TimeBaseStructure.TIM_Period = TimeBase / Freq - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+    /*Habilitacion de la interrupcion:*/
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+    /*Habilitacion del contador:*/
+    TIM_Cmd(TIM3, ENABLE);
 }
 
 /* * * * * * * * * * * * *     LCD    * * * * * * * * * * * * */
