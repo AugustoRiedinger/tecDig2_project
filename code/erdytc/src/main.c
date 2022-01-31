@@ -109,6 +109,20 @@ LCD_2X16_t LCD_2X16[] = {
 /*Agotamiento de cuenta del TIM3:*/
 #define freqTIM3 4
 
+/* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
+/* - - - -   EXTI   - - - -*/
+/*Switch temperatura:*/
+uint8_t switchTemp  = 0;
+
+/*Switch SD:*/
+uint8_t switchSD    = 0;
+
+/*Switch servo:*/
+uint8_t switchServo = 0;
+
+/*Switch extra:*/
+uint8_t switchExtra = 0;
+
 /* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
 /*Parametros LCD:*/
 void P_LCD_2x16_InitIO(LCD_2X16_t* LCD_2X16);
@@ -190,9 +204,9 @@ void EXTI9_5_IRQHandler(void)
   /*Si la interrupcion fue por linea 6 (PC6 - C1):*/
   if(EXTI_GetITStatus(EXTI_Line6) != RESET){
       /*Si ademas de estar C1 en 1 tambien esta F1 en 1, entonces el switch pulsado es S1:*/
-      if(GPIO_ReadInputDataBit(F1_Port, F1))       S1Cont = S1Cont + 1;
+      if(GPIO_ReadInputDataBit(_F1, _f1))       switchTemp = 1;
       /*Si ademas de estar C1 en 1 tambien esta F2 en 1, entonces el switch pulsado es S2:*/
-      else if(GPIO_ReadInputDataBit(F2_Port, F2))  S2Cont = S2Cont + 2;
+      else if(GPIO_ReadInputDataBit(_F2, _f2))  switchSD = 1;
 
       /*Clear the EXTI line 6 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line6);
@@ -201,9 +215,9 @@ void EXTI9_5_IRQHandler(void)
   /*Si la interrupcion fue por linea 8 (PC8 - C2):*/
   else if(EXTI_GetITStatus(EXTI_Line8) != RESET){
       /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
-      if (GPIO_ReadInputDataBit(F1_Port, F1))      S3Cont = S3Cont + 3;
+      if (GPIO_ReadInputDataBit(_F1, _f1))      switchServo = 1;
       /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
-      else if (GPIO_ReadInputDataBit(F2_Port, F2)) S4Cont = S4Cont + 4;
+      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchExtra = 1;
 
       /*Clear the EXTI line 8 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line8);

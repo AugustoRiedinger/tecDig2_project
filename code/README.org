@@ -480,7 +480,6 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
    + *Agotamiento de cuenta del TIM3:* se setea a una frecuencia de 4 Hz, equivalente a 250 mseg.
 
-
 #+begin_src c
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
 /* - - - -   LCD   - - - -*/
@@ -558,6 +557,30 @@ LCD_2X16_t LCD_2X16[] = {
 /*Agotamiento de cuenta del TIM3:*/
 #define freqTIM3 4
 #+end_src
+*** VARIABLES GLOBALES
+Variables utilizadas en distintas subrutinas del código.
+
+ + *EXTI:* parámetros que se corresponden con el manejo de interrupciones al pulso externo. Estas son:
+   + *Switch temperatura:* se utiliza para indicar que se pulsó =S1=; solo puede tener dos estados lógicos (1 o 0).
+   + *Switch servo:* se utiliza para indicar que se pulsó =S2=; solo puede tener dos estados lógicos (1 o 0).
+   + *Switch SD:* se utiliza para indicar que se pulsó =S3=; solo puede tener dos estados lógicos (1 o 0).
+   + *Switch extra:* se utiliza para indicar que se pulsó =S4=; solo puede tener dos estados lógicos (1 o 0).
+
+#+begin_src c
+/* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
+/* - - - -   EXTI   - - - -*/
+/*Switch temperatura:*/
+uint8_t switchTemp  = 0;
+
+/*Switch SD:*/
+uint8_t switchSD    = 0;
+
+/*Switch servo:*/
+uint8_t switchServo = 0;
+
+/*Switch extra:*/
+uint8_t switchExtra = 0;
+#+end_src
 
 *** FUNCIONES LOCALES
 
@@ -632,7 +655,6 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port);
 #+end_src
 
 ** MAIN
-
 En esta parte se encuentra la sección principal del código donde se inicializa y se llama a las funciones. Además, se realizan diferentes procesamientos en el bucle principal.
 
 #+begin_src c
@@ -686,6 +708,7 @@ Esta sección muestra el bucle principal infinito del código:
 /*----------------------------------------------------------------*/
 #+end_src
 *** TIM3
+Esta interrupción se utiliza principalmente para actualizar los valores del LCD y refrescar distintos parámetros y variables globales del código. En la configuración está seteada para que el agotamiento de cuenta se de cada 250 mseg.
 
 #+begin_src c
 /*Interrupcion al vencimiento de cuenta de TIM3 cada 1/FS:*/
@@ -698,6 +721,21 @@ void TIM3_IRQHandler(void) {
 }
 #+end_src
 *** EXTI
+El objetivo de los pulsadores es realizar una acción distinta sobre el Cubesat por cada uno. En la ERDYTC, cada acción se mostrará en el LCD. A los pulsadores se los llamará =S1,...,S4= respectivamente, y cada acción se distinguirá en las siguientes categorías:
+ + =switchTemp= iniciará la transmisión de datos desde el SATDAC y actualizará el valor de temperatura mostrado en la ERDYT. Se corresponde con =S1=.
+ + =switchServo= iniciará el desplazamiento o contracción de la antena de transmisión del Cubesat dependiendo de su estado anterior. Se corresponde con =S2=.
+ + =switchSD= iniciará el proceso de guardado de datos en memoria SD de la ERDYTC. Se corresponde con =S3=.
+ + =switchExtra= todavía tenemos que decidir que hace :TODO:.
+
+La rutina de interrupción se basa en el hecho de que los pulsadores están conectados de forma matricial. Debido a esto, dos de los pulsadores intercalan un estado alto (=F1= y =F2=), mientras que se lee en los otros dos (=C1= y =C2=) cuál está en estado alto. Con ésta lógica, se puede interpretar que switch se pulsó de la siguiente manera:
+
+|----------+----------+----------|
+|          | *C1 = 1* | *C2 = 1* |
+|----------+----------+----------|
+| *F1 = 1* | S1 = 1   | S3 = 1   |
+| *F2 = 1* | S2 = 1   | S4 = 1   |
+|----------+----------+----------|
+
 #+begin_src c
 /*Interrupcion al pulso por PC6-C1 o PC8-C2:*/
 void EXTI9_5_IRQHandler(void)
@@ -705,9 +743,9 @@ void EXTI9_5_IRQHandler(void)
   /*Si la interrupcion fue por linea 6 (PC6 - C1):*/
   if(EXTI_GetITStatus(EXTI_Line6) != RESET){
       /*Si ademas de estar C1 en 1 tambien esta F1 en 1, entonces el switch pulsado es S1:*/
-      if(GPIO_ReadInputDataBit(F1_Port, F1))       S1Cont = S1Cont + 1;
+      if(GPIO_ReadInputDataBit(_F1, _f1))       switchTemp = 1;
       /*Si ademas de estar C1 en 1 tambien esta F2 en 1, entonces el switch pulsado es S2:*/
-      else if(GPIO_ReadInputDataBit(F2_Port, F2))  S2Cont = S2Cont + 2;
+      else if(GPIO_ReadInputDataBit(_F2, _f2))  switchSD = 1;
 
       /*Clear the EXTI line 6 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line6);
@@ -716,9 +754,9 @@ void EXTI9_5_IRQHandler(void)
   /*Si la interrupcion fue por linea 8 (PC8 - C2):*/
   else if(EXTI_GetITStatus(EXTI_Line8) != RESET){
       /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
-      if (GPIO_ReadInputDataBit(F1_Port, F1))      S3Cont = S3Cont + 3;
+      if (GPIO_ReadInputDataBit(_F1, _f1))      switchServo = 1;
       /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
-      else if (GPIO_ReadInputDataBit(F2_Port, F2)) S4Cont = S4Cont + 4;
+      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchExtra = 1;
 
       /*Clear the EXTI line 8 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line8);
