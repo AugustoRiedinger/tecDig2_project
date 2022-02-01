@@ -478,6 +478,7 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
      |-----+-----+-----+-----|
 
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
+   + *Longitud general buffers:* utilzada para definir la longitud fija de buffers para mostrar variables en el LCD.
    + *Agotamiento de cuenta del TIM3:* se setea a una frecuencia de 4 Hz, equivalente a 250 mseg.
 
 #+begin_src c
@@ -554,6 +555,9 @@ LCD_2X16_t LCD_2X16[] = {
 #define _c2 GPIO_Pin_8
 
 /* - - - - PARAMS. - - - -*/
+/*Longitud general de buffers:*/
+#define buffLen 20
+
 /*Agotamiento de cuenta del TIM3:*/
 #define freqTIM3 4
 #+end_src
@@ -565,6 +569,12 @@ Variables utilizadas en distintas subrutinas del código.
    + *Switch servo:* se utiliza para indicar que se pulsó =S2=; solo puede tener dos estados lógicos (1 o 0).
    + *Switch SD:* se utiliza para indicar que se pulsó =S3=; solo puede tener dos estados lógicos (1 o 0).
    + *Switch extra:* se utiliza para indicar que se pulsó =S4=; solo puede tener dos estados lógicos (1 o 0).
+ + *RF:* variables utilizadas en la transmisión de datos por módulos RF. Estas son:
+   + *Temperatura en grados:* variable utilizada para guardar la conversión de la temperatura medida en forma digital en grados Celcius.
+   + *Temperatura en valor digital:* variable utlizada para guardar el valor digitla de temperatura enviado por el SATDAC.
+ + *LCD:* variables que se corresponden con el manejo de los mensajes mostrados en el LCD:
+   + *Pantalla inicial:* variable utilizada para distinguir cuando se debe mostrar el mensaje inicial en el LCD. Comienza en estado alto debido a que ésta es la primer pantalla que ve cuando se enciende el sistema.
+   + *Contador de 5 segundos:* variable utilizada para tomar el tiempo de los mensajes que tardan 5 segundos. Como la interrupción del TIM3 se da cada 250 mseg, se necesitará un valor de 20 en esta variable para comprobar que transcurrieron 5 segundos.
 
 #+begin_src c
 /* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
@@ -579,7 +589,21 @@ uint8_t switchSD    = 0;
 uint8_t switchServo = 0;
 
 /*Switch extra:*/
-uint8_t switchExtra = 0;
+uint8_t switchMenu = 0;
+
+/* - - - -   RF    - - - -*/
+/*Temperatura en grados:*/
+float tempDeg = 0;
+
+/*Temperatura en valor digital:*/
+uint32_t tempDig = 0;
+
+/* - - - -   LCD   - - - -*/
+/*Pantalla inicial:*/
+uint8_t initialScreen = 1;
+
+/*Contador de 5 segundos:*/
+uint8_t fiveSecDelay = 0;
 #+end_src
 
 *** FUNCIONES LOCALES
@@ -707,34 +731,166 @@ Esta sección muestra el bucle principal infinito del código:
 /*INTERRUPCIONES:                                                 */
 /*----------------------------------------------------------------*/
 #+end_src
-*** TIM3
+*** TIM3 / LCD
 Esta interrupción se utiliza principalmente para actualizar los valores del LCD y refrescar distintos parámetros y variables globales del código. En la configuración está seteada para que el agotamiento de cuenta se de cada 250 mseg.
 
+La pantalla inicial del LCD se ve de la siguiente forma:
+
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+|   |   | T | D |   | I | I | - | E | R | D  |  Y | T  | C  |    |    |
+|   |   | T | e | m | p | = | X | X | . | X  |    | °  | C  |    |    |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+
+Donde las =XX.X= indican el valor de temperatura inicial leído con un dígito de confianza. Cuando se enciende el dispositivo por primera vez, el valor mostrado será incorrecto; el mismo se actualizará cuando se presione el pulsador =S1= para pedir la temperatura al SATDAC.
+
+Luego, al presionar los diferentes pulsadores se verán distintas pantallas:
+
+**** Pulsador S1
+Aparecerá en el LCD un mensaje para indicar que se confirma el pedido de temperatura. El mismo dura 5 segundos.
+
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+|   |   | T | E | M | P | E | R | A | T | U  | R  | A  |    |    |    |
+|   |   | A | C | T | U | A | L | I | Z | A  | D  | A  |    |    |    |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+
+Luego, el sistema volverá a la pantalla inicial con el valor de temperatura actualizado.
+
+**** Pulsador S2
+Cuando se pulsa S2, aparecerá un mensaje en el LCD por 5 segundos indicando que los datos fueron guardados en la memoria SD:
+
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+|   | D | A | T | O | S |   | G | U | A | R  | D  | A  | D  | O  |  S |
+|   |   | C | O | R | R | E | C | T | A | M  | E  | N  | T  | E  |    |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+
+Luego, el sistema volverá a la pantalla inicial.
+
+**** Pulsador S3
+Cuando se pulsa S3, aparecerá un mensaje en el LCD indicando que el proceso de mover la antena en el SATDAC se está iniciando:
+
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| A | N | T | E | N | A |   | D | E | S | P  | L  | E  | G  | A  |    |
+|   |   | C | O | R | R | E | C | T | A | M  | E  | N  | T  | E  |    |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+
+Luego de 5 segundos, el sistema vuelve a la pantalla inicial.
+**** Pulsador S4
+Cuando se pulsa S4, el LCD cambiará a una pantalla secuandaria donde se indica la función de cada pulsador:
+
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+| 1 | _ | T | e | m | p | . |   |   | 3 | _  | S  | e  | r  | v  | o  |
+| 2 | _ | S | D |   |   |   |   |   | 4 | _  | V  | o  | l  | v  | e  |
+|---+---+---+---+---+---+---+---+---+---+----+----+----+----+----+----|
+
+El sistema volverá a la pantalla inicial si se vuelve a presionar el pulsador =S4=.
+**** Código
+
+Se implementan cada uno de los mensajes mostrados anterioremente a partir de la interrupción por agotamiento de cuenta del TIM3 cada 250 mseg:
+
 #+begin_src c
-/*Interrupcion al vencimiento de cuenta de TIM3 cada 1/FS:*/
+/*Interrupcion por vencimiento de cuenta de TIM3 cada 1/FS:*/
 void TIM3_IRQHandler(void) {
     if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+
+        /*Buffer para mostrar el valor de temperatura:*/
+        char BuffTemp[buffLen];
+
+        /*Refresco LCD:*/
+        CLEAR_LCD_2x16(LCD_2X16);
+
+        /*Pantalla incial:*/
+        if(initialScreen == 1){
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 2, 0, "TD II-ERDYTC");
+            sprintf(BuffTemp, "%.1f", tempDeg);
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
+            PRINT_LCD_2x16(LCD_2X16, 7, 1, BuffTemp);
+        }
+
+        /*Pantalla actualizar temperatura - pulsador S1:*/
+        else if(switchTemp == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 2, 0, "TEMPERATURA");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "ACTUALIZADA");
+        }
+
+        /*Pantalla SD - pulsador S2:*/
+        else if(switchSD == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 1, 0, "DATOS GUARDADOS");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+        }
+
+        /*Pantalla mover servo - pulsador S3:*/
+        else if(switchServo == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 0, 0, "ANTENA DESPLEGA");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+        }
+
+        /*Pantalla menu - pulsador S4:*/
+        else if(switchMenu == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 0, 0, "1_Temp.");
+            PRINT_LCD_2x16(LCD_2X16, 9, 0, "3_Servo");
+            PRINT_LCD_2x16(LCD_2X16, 0, 1, "2_SD");
+            PRINT_LCD_2x16(LCD_2X16, 9, 1, "4_Volver");
+        }
+
+        /*Reseteo variables:*/
+        else{
+            initialScreen   = 1;
+            switchTemp      = 0;
+            switchSD        = 0;
+            switchServo     = 0;
+            switchMenu      = 0;
+        }
 
         /*Rehabilitacion del timer:*/
         TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     }
 }
 #+end_src
+
 *** EXTI
 El objetivo de los pulsadores es realizar una acción distinta sobre el Cubesat por cada uno. En la ERDYTC, cada acción se mostrará en el LCD. A los pulsadores se los llamará =S1,...,S4= respectivamente, y cada acción se distinguirá en las siguientes categorías:
  + =switchTemp= iniciará la transmisión de datos desde el SATDAC y actualizará el valor de temperatura mostrado en la ERDYT. Se corresponde con =S1=.
  + =switchServo= iniciará el desplazamiento o contracción de la antena de transmisión del Cubesat dependiendo de su estado anterior. Se corresponde con =S2=.
  + =switchSD= iniciará el proceso de guardado de datos en memoria SD de la ERDYTC. Se corresponde con =S3=.
- + =switchExtra= todavía tenemos que decidir que hace :TODO:.
+ + =switchMenu= todavía tenemos que decidir que hace :TODO:.
 
 La rutina de interrupción se basa en el hecho de que los pulsadores están conectados de forma matricial. Debido a esto, dos de los pulsadores intercalan un estado alto (=F1= y =F2=), mientras que se lee en los otros dos (=C1= y =C2=) cuál está en estado alto. Con ésta lógica, se puede interpretar que switch se pulsó de la siguiente manera:
 
-|----------+----------+----------|
-|          | *C1 = 1* | *C2 = 1* |
-|----------+----------+----------|
-| *F1 = 1* | S1 = 1   | S3 = 1   |
-| *F2 = 1* | S2 = 1   | S4 = 1   |
-|----------+----------+----------|
+                       |----------+----------+----------|
+                       |          | *C1 = 1* | *C2 = 1* |
+                       |----------+----------+----------|
+                       | *F1 = 1* | S1 = 1   | S3 = 1   |
+                       | *F2 = 1* | S2 = 1   | S4 = 1   |
+                       |----------+----------+----------|
+
+Finalmente, se pone en estado bajo la variable =initalScreen= para evitar que el programa ingrese a la subrutina para mostrar la pantalla inicial y en cambio muestre las pantallas correspondientes al pulsador apretado.
 
 #+begin_src c
 /*Interrupcion al pulso por PC6-C1 o PC8-C2:*/
@@ -756,11 +912,14 @@ void EXTI9_5_IRQHandler(void)
       /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
       if (GPIO_ReadInputDataBit(_F1, _f1))      switchServo = 1;
       /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
-      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchExtra = 1;
+      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchMenu = 1;
 
       /*Clear the EXTI line 8 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line8);
   }
+
+  /*Evitar que se muestre la pantalla incial:*/
+  initialScreen = 0;
 }
 #+end_src
 ** FUNCIONES LOCALES

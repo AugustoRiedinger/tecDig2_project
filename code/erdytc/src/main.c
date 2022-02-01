@@ -106,6 +106,9 @@ LCD_2X16_t LCD_2X16[] = {
 #define _c2 GPIO_Pin_8
 
 /* - - - - PARAMS. - - - -*/
+/*Longitud general de buffers:*/
+#define buffLen 20
+
 /*Agotamiento de cuenta del TIM3:*/
 #define freqTIM3 4
 
@@ -121,7 +124,21 @@ uint8_t switchSD    = 0;
 uint8_t switchServo = 0;
 
 /*Switch extra:*/
-uint8_t switchExtra = 0;
+uint8_t switchMenu = 0;
+
+/* - - - -   RF    - - - -*/
+/*Temperatura en grados:*/
+float tempDeg = 0;
+
+/*Temperatura en valor digital:*/
+uint32_t tempDig = 0;
+
+/* - - - -   LCD   - - - -*/
+/*Pantalla inicial:*/
+uint8_t initialScreen = 1;
+
+/*Contador de 5 segundos:*/
+uint8_t fiveSecDelay = 0;
 
 /* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
 /*Parametros LCD:*/
@@ -189,9 +206,75 @@ int main(void){
 /*INTERRUPCIONES:                                                 */
 /*----------------------------------------------------------------*/
 
-/*Interrupcion al vencimiento de cuenta de TIM3 cada 1/FS:*/
+/*Interrupcion por vencimiento de cuenta de TIM3 cada 1/FS:*/
 void TIM3_IRQHandler(void) {
     if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+
+        /*Buffer para mostrar el valor de temperatura:*/
+        char BuffTemp[buffLen];
+
+        /*Refresco LCD:*/
+        CLEAR_LCD_2x16(LCD_2X16);
+
+        /*Pantalla incial:*/
+        if(initialScreen == 1){
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 2, 0, "TD II-ERDYTC");
+            sprintf(BuffTemp, "%.1f", tempDeg);
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
+            PRINT_LCD_2x16(LCD_2X16, 7, 1, BuffTemp);
+        }
+
+        /*Pantalla actualizar temperatura - pulsador S1:*/
+        else if(switchTemp == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 2, 0, "TEMPERATURA");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "ACTUALIZADA");
+        }
+
+        /*Pantalla SD - pulsador S2:*/
+        else if(switchSD == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 1, 0, "DATOS GUARDADOS");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+        }
+
+        /*Pantalla mover servo - pulsador S3:*/
+        else if(switchServo == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 0, 0, "ANTENA DESPLEGA");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+        }
+
+        /*Pantalla menu - pulsador S4:*/
+        else if(switchMenu == 1 && fiveSecDelay <= 20){
+            /*Aumentar el contador de los 5 seg:*/
+            fiveSecDelay++;
+
+            /*Algoritmo para mostrar el mensaje:*/
+            PRINT_LCD_2x16(LCD_2X16, 0, 0, "1_Temp.");
+            PRINT_LCD_2x16(LCD_2X16, 9, 0, "3_Servo");
+            PRINT_LCD_2x16(LCD_2X16, 0, 1, "2_SD");
+            PRINT_LCD_2x16(LCD_2X16, 9, 1, "4_Volver");
+        }
+
+        /*Reseteo variables:*/
+        else{
+            initialScreen   = 1;
+            switchTemp      = 0;
+            switchSD        = 0;
+            switchServo     = 0;
+            switchMenu      = 0;
+        }
 
         /*Rehabilitacion del timer:*/
         TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
@@ -217,11 +300,14 @@ void EXTI9_5_IRQHandler(void)
       /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
       if (GPIO_ReadInputDataBit(_F1, _f1))      switchServo = 1;
       /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
-      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchExtra = 1;
+      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchMenu = 1;
 
       /*Clear the EXTI line 8 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line8);
   }
+
+  /*Evitar que se muestre la pantalla incial:*/
+  initialScreen = 0;
 }
 
 /*----------------------------------------------------------------*/
