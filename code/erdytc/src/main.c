@@ -13,11 +13,18 @@
 /*Control de timers:*/
 #include "stm32f4xx_tim.h"
 
+/*Control de interrupcion por pulso externo:*/
+#include "stm32f4xx_exti.h"
+
+/*Control del protocolo USART:*/
+#include "stm32f4xx_usart.h"
+#include "string.h"
+
 /*Matematicas:*/
 #include "math.h"
 
 /*----------------------------------------------------------------*/
-/*DEFINICIONES:                                                   */
+/*HEADER:                                                         */
 /*----------------------------------------------------------------*/
 
 /* * * * * * * * * * * * * ESTRUCTURAS * * * * * * * * * * * * */
@@ -105,6 +112,17 @@ LCD_2X16_t LCD_2X16[] = {
 #define _C2 GPIOC
 #define _c2 GPIO_Pin_8
 
+/*RX USART:*/
+#define _RX GPIOA
+#define _rx GPIO_Pin_3
+
+/*TX USART:*/
+#define _TX GPIOA
+#define _tx GPIO_Pin_2
+
+/*Baud Rate USART:*/
+#define baudRate    9600
+
 /* - - - - PARAMS. - - - -*/
 /*Longitud general de buffers:*/
 #define buffLen 20
@@ -174,6 +192,17 @@ uint8_t FIND_EXTI_PIN_SOURCE(uint32_t Pin);
 uint32_t FIND_EXTI_LINE(uint32_t Pin);
 uint32_t FIND_EXTI_HANDLER(uint32_t Pin);
 
+/*Inicialización puertos USART:*/
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
+
+/*Funciones de accion de los pulsadores:*/
+void TEMP(void);
+void SERVO(void);
+void SD(void);
+
+/*Encontrar PinSource:*/
+uint8_t FIND_PINSOURCE(uint32_t Pin);
+
 /*Encontrar CLOCK:*/
 uint32_t FIND_CLOCK(GPIO_TypeDef* Port);
 
@@ -199,6 +228,9 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
+      if     (switchTemp == 1)  TEMP();
+      else if(switchSD == 1)    SD();
+      else if(switchServo == 1) SERVO();
   }
 }
 
@@ -314,6 +346,8 @@ void EXTI9_5_IRQHandler(void)
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
 
+/* * * * * * * * * * * * * GENERAL * * * * * * * * * * * * */
+
 void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin)
 {
     /*Estructura de configuracion:*/
@@ -345,6 +379,8 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
     else if (Port == GPIOG) Clock = RCC_AHB1Periph_GPIOG;
     return Clock;
 }
+
+/* * * * * * * * * * * * * TIMERS * * * * * * * * * * * * */
 
 /*Inicializacion del TIM3:*/
 void INIT_TIM3(uint32_t Freq)
@@ -385,6 +421,237 @@ void INIT_TIM3(uint32_t Freq)
 
     /*Habilitacion del contador:*/
     TIM_Cmd(TIM3, ENABLE);
+}
+
+/* * * * * * * * * * * * * EXTI * * * * * * * * * * * * */
+
+void INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin)
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
+
+    /*Enable GPIO clock:*/
+    uint32_t Clock;
+    Clock = FIND_CLOCK(Port);
+    RCC_AHB1PeriphClockCmd(Clock, ENABLE);
+    /* Enable SYSCFG clock */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+    /* Configure pin as input floating */
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Pin = Pin;
+    GPIO_Init(Port, &GPIO_InitStructure);
+
+    /* Connect EXTI Line to pin */
+    SYSCFG_EXTILineConfig(FIND_EXTI_PORT_SOURCE(Port), FIND_EXTI_PIN_SOURCE(Pin));
+
+    /* Configure EXTI Line0 */
+    EXTI_InitStructure.EXTI_Line = FIND_EXTI_LINE(Pin);
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+    EXTI_Init(&EXTI_InitStructure);
+
+    /* Enable and set EXTI Line0 Interrupt to the lowest priority */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    NVIC_InitStructure.NVIC_IRQChannel = FIND_EXTI_HANDLER(Pin);
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+}
+
+uint8_t FIND_EXTI_PORT_SOURCE(GPIO_TypeDef* Port)
+{
+    if (Port == GPIOA)      return EXTI_PortSourceGPIOA;
+    else if (Port == GPIOB) return EXTI_PortSourceGPIOB;
+    else if (Port == GPIOC) return EXTI_PortSourceGPIOC;
+    else if (Port == GPIOD) return EXTI_PortSourceGPIOD;
+    else if (Port == GPIOE) return EXTI_PortSourceGPIOE;
+    else if (Port == GPIOF) return EXTI_PortSourceGPIOF;
+    else                    return 0;
+}
+
+uint8_t FIND_EXTI_PIN_SOURCE(uint32_t Pin)
+{
+    if (Pin == GPIO_Pin_0)          return EXTI_PinSource0;
+    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
+    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
+    else if (Pin == GPIO_Pin_2)     return EXTI_PinSource2;
+    else if (Pin == GPIO_Pin_3)     return EXTI_PinSource3;
+    else if (Pin == GPIO_Pin_4)     return EXTI_PinSource4;
+    else if (Pin == GPIO_Pin_5)     return EXTI_PinSource5;
+    else if (Pin == GPIO_Pin_6)     return EXTI_PinSource6;
+    else if (Pin == GPIO_Pin_7)     return EXTI_PinSource7;
+    else if (Pin == GPIO_Pin_8)     return EXTI_PinSource8;
+    else if (Pin == GPIO_Pin_9)     return EXTI_PinSource9;
+    else if (Pin == GPIO_Pin_10)    return EXTI_PinSource10;
+    else if (Pin == GPIO_Pin_11)    return EXTI_PinSource11;
+    else if (Pin == GPIO_Pin_12)    return EXTI_PinSource12;
+    else if (Pin == GPIO_Pin_13)    return EXTI_PinSource13;
+    else if (Pin == GPIO_Pin_14)    return EXTI_PinSource14;
+    else                            return 0;
+}
+
+uint32_t FIND_EXTI_LINE(uint32_t Pin)
+{
+    if (Pin == GPIO_Pin_0)          return EXTI_Line0;
+    else if (Pin == GPIO_Pin_1)     return EXTI_Line1;
+    else if (Pin == GPIO_Pin_2)     return EXTI_Line2;
+    else if (Pin == GPIO_Pin_3)     return EXTI_Line3;
+    else if (Pin == GPIO_Pin_4)     return EXTI_Line4;
+    else if (Pin == GPIO_Pin_5)     return EXTI_Line5;
+    else if (Pin == GPIO_Pin_6)     return EXTI_Line6;
+    else if (Pin == GPIO_Pin_7)     return EXTI_Line7;
+    else if (Pin == GPIO_Pin_8)     return EXTI_Line8;
+    else if (Pin == GPIO_Pin_9)     return EXTI_Line9;
+    else if (Pin == GPIO_Pin_10)    return EXTI_Line10;
+    else if (Pin == GPIO_Pin_11)    return EXTI_Line11;
+    else if (Pin == GPIO_Pin_12)    return EXTI_Line12;
+    else if (Pin == GPIO_Pin_13)    return EXTI_Line13;
+    else if (Pin == GPIO_Pin_14)    return EXTI_Line14;
+    else if (Pin == GPIO_Pin_15)    return EXTI_Line15;
+    else                            return 0;
+}
+
+uint32_t FIND_EXTI_HANDLER(uint32_t Pin)
+{
+    if (Pin == GPIO_Pin_0)          return EXTI0_IRQn;
+    else if (Pin == GPIO_Pin_1)     return EXTI1_IRQn;
+    else if (Pin == GPIO_Pin_2)     return EXTI2_IRQn;
+    else if (Pin == GPIO_Pin_3)     return EXTI3_IRQn;
+    else if (Pin == GPIO_Pin_4)     return EXTI4_IRQn;
+    else if (Pin == GPIO_Pin_5  ||
+             Pin == GPIO_Pin_5  ||
+             Pin == GPIO_Pin_7  ||
+             Pin == GPIO_Pin_8  ||
+             Pin == GPIO_Pin_9)     return EXTI9_5_IRQn;
+    else if (Pin == GPIO_Pin_10 ||
+             Pin == GPIO_Pin_11 ||
+             Pin == GPIO_Pin_12 ||
+             Pin == GPIO_Pin_13 ||
+             Pin == GPIO_Pin_14 ||
+             Pin == GPIO_Pin_15)    return EXTI15_10_IRQn;
+    else                            return 0;
+}
+
+/* * * * * * * * * * * * * USART * * * * * * * * * * * * */
+
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate)
+{
+    /*USART clock enable:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+    /*GPIO clock enable:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port1), ENABLE);
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port2), ENABLE);
+
+    /*GPIO Configuration:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.GPIO_Pin = Pin1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port1, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = Pin2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port2, &GPIO_InitStructure);
+
+    /*Connect USART pins to AF:*/
+    GPIO_PinAFConfig(Port1, FIND_PINSOURCE(Pin1), GPIO_AF_USART2);
+    GPIO_PinAFConfig(Port2, FIND_PINSOURCE(Pin2), GPIO_AF_USART2);
+
+    /*USARTx configuration:*/
+    USART_InitTypeDef USART_InitStructure;
+
+    USART_InitStructure.USART_BaudRate = BaudRate;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+    USART_InitStructure.USART_Parity = USART_Parity_No;
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+
+    USART_Init(USART2, &USART_InitStructure);
+
+    USART_Cmd(USART2, ENABLE);
+}
+
+void TEMP(void){
+    /*Mientras se reciba un dato:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
+        /*Se guarda lo recibido en forma digital:*/
+        tempDig = USART_ReceiveData(USART2);
+    }
+}
+
+void SERVO(void){
+
+    /*Creacion de la variable para desplegar la antena:*/
+    uint8_t servoON = 1;
+
+    /*Clarear el flag de estado para transmitir:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+    {}
+
+    /*Iniciar la transmision:*/
+    USART_SendData(USART2, servoON);
+}
+
+/* * * * * * * * * * * * * SD * * * * * * * * * * * * */
+
+void SD(void){
+
+}
+
+/* * * * * * * * * * * * * LCD * * * * * * * * * * * * */
+
+/*Inicializacion de los pines del LCD:*/
+void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
+{
+    //Inicialización de los pines del LCD:
+    P_LCD_2x16_InitIO(LCD_2X16);
+    // kleine Pause
+    P_LCD_2x16_Delay(TLCD_INIT_PAUSE);
+    // Init Sequenz starten
+    P_LCD_2x16_InitSequenz(LCD_2X16);
+    // LCD-Settings einstellen
+    P_LCD_2x16_Cmd(TLCD_CMD_INIT_DISPLAY, LCD_2X16);
+    P_LCD_2x16_Cmd(TLCD_CMD_ENTRY_MODE, LCD_2X16);
+    // Display einschalten
+    P_LCD_2x16_Cmd(TLCD_CMD_DISP_M1, LCD_2X16);
+    // Display l�schen
+    P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
+    // kleine Pause
+    P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+
+/*Refresco de la pantalla del LCD:*/
+void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
+{
+  // Display l�schen
+  P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
+  // kleine Pause
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+
+/*Impresion en la pantalla del LCD:*/
+void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
+{
+  // Cursor setzen
+  P_LCD_2x16_Cursor(LCD_2X16,x,y);
+  // kompletten String ausgeben
+  while (*ptr != 0) {
+    P_LCD_2x16_Data(*ptr, LCD_2X16);
+    ptr++;
+  }
 }
 
 /* * * * * * * * * * * * *     LCD    * * * * * * * * * * * * */
@@ -522,156 +789,4 @@ void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16)
   if((wert&0x02)!=0) P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D5, LCD_2X16);
   if((wert&0x01)!=0) P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
   P_LCD_2x16_Clk(LCD_2X16);
-}
-
-/*Inicializacion de los pines del LCD:*/
-void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
-{
-    //Inicialización de los pines del LCD:
-    P_LCD_2x16_InitIO(LCD_2X16);
-    // kleine Pause
-    P_LCD_2x16_Delay(TLCD_INIT_PAUSE);
-    // Init Sequenz starten
-    P_LCD_2x16_InitSequenz(LCD_2X16);
-    // LCD-Settings einstellen
-    P_LCD_2x16_Cmd(TLCD_CMD_INIT_DISPLAY, LCD_2X16);
-    P_LCD_2x16_Cmd(TLCD_CMD_ENTRY_MODE, LCD_2X16);
-    // Display einschalten
-    P_LCD_2x16_Cmd(TLCD_CMD_DISP_M1, LCD_2X16);
-    // Display l�schen
-    P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
-    // kleine Pause
-    P_LCD_2x16_Delay(TLCD_PAUSE);
-}
-
-/*Refresco de la pantalla del LCD:*/
-void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
-{
-  // Display l�schen
-  P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
-  // kleine Pause
-  P_LCD_2x16_Delay(TLCD_PAUSE);
-}
-
-/*Impresion en la pantalla del LCD:*/
-void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
-{
-  // Cursor setzen
-  P_LCD_2x16_Cursor(LCD_2X16,x,y);
-  // kompletten String ausgeben
-  while (*ptr != 0) {
-    P_LCD_2x16_Data(*ptr, LCD_2X16);
-    ptr++;
-  }
-}
-
-void INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin)
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
-
-    /*Enable GPIO clock:*/
-    uint32_t Clock;
-    Clock = FIND_CLOCK(Port);
-    RCC_AHB1PeriphClockCmd(Clock, ENABLE);
-    /* Enable SYSCFG clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-    /* Configure pin as input floating */
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_InitStructure.GPIO_Pin = Pin;
-    GPIO_Init(Port, &GPIO_InitStructure);
-
-    /* Connect EXTI Line to pin */
-    SYSCFG_EXTILineConfig(FIND_EXTI_PORT_SOURCE(Port), FIND_EXTI_PIN_SOURCE(Pin));
-
-    /* Configure EXTI Line0 */
-    EXTI_InitStructure.EXTI_Line = FIND_EXTI_LINE(Pin);
-    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&EXTI_InitStructure);
-
-    /* Enable and set EXTI Line0 Interrupt to the lowest priority */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    NVIC_InitStructure.NVIC_IRQChannel = FIND_EXTI_HANDLER(Pin);
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-}
-
-uint8_t FIND_EXTI_PORT_SOURCE(GPIO_TypeDef* Port)
-{
-    if (Port == GPIOA)      return EXTI_PortSourceGPIOA;
-    else if (Port == GPIOB) return EXTI_PortSourceGPIOB;
-    else if (Port == GPIOC) return EXTI_PortSourceGPIOC;
-    else if (Port == GPIOD) return EXTI_PortSourceGPIOD;
-    else if (Port == GPIOE) return EXTI_PortSourceGPIOE;
-    else if (Port == GPIOF) return EXTI_PortSourceGPIOF;
-    else                    return 0;
-}
-
-uint8_t FIND_EXTI_PIN_SOURCE(uint32_t Pin)
-{
-    if (Pin == GPIO_Pin_0)          return EXTI_PinSource0;
-    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
-    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
-    else if (Pin == GPIO_Pin_2)     return EXTI_PinSource2;
-    else if (Pin == GPIO_Pin_3)     return EXTI_PinSource3;
-    else if (Pin == GPIO_Pin_4)     return EXTI_PinSource4;
-    else if (Pin == GPIO_Pin_5)     return EXTI_PinSource5;
-    else if (Pin == GPIO_Pin_6)     return EXTI_PinSource6;
-    else if (Pin == GPIO_Pin_7)     return EXTI_PinSource7;
-    else if (Pin == GPIO_Pin_8)     return EXTI_PinSource8;
-    else if (Pin == GPIO_Pin_9)     return EXTI_PinSource9;
-    else if (Pin == GPIO_Pin_10)    return EXTI_PinSource10;
-    else if (Pin == GPIO_Pin_11)    return EXTI_PinSource11;
-    else if (Pin == GPIO_Pin_12)    return EXTI_PinSource12;
-    else if (Pin == GPIO_Pin_13)    return EXTI_PinSource13;
-    else if (Pin == GPIO_Pin_14)    return EXTI_PinSource14;
-    else                            return 0;
-}
-
-uint32_t FIND_EXTI_LINE(uint32_t Pin)
-{
-    if (Pin == GPIO_Pin_0)          return EXTI_Line0;
-    else if (Pin == GPIO_Pin_1)     return EXTI_Line1;
-    else if (Pin == GPIO_Pin_2)     return EXTI_Line2;
-    else if (Pin == GPIO_Pin_3)     return EXTI_Line3;
-    else if (Pin == GPIO_Pin_4)     return EXTI_Line4;
-    else if (Pin == GPIO_Pin_5)     return EXTI_Line5;
-    else if (Pin == GPIO_Pin_6)     return EXTI_Line6;
-    else if (Pin == GPIO_Pin_7)     return EXTI_Line7;
-    else if (Pin == GPIO_Pin_8)     return EXTI_Line8;
-    else if (Pin == GPIO_Pin_9)     return EXTI_Line9;
-    else if (Pin == GPIO_Pin_10)    return EXTI_Line10;
-    else if (Pin == GPIO_Pin_11)    return EXTI_Line11;
-    else if (Pin == GPIO_Pin_12)    return EXTI_Line12;
-    else if (Pin == GPIO_Pin_13)    return EXTI_Line13;
-    else if (Pin == GPIO_Pin_14)    return EXTI_Line14;
-    else if (Pin == GPIO_Pin_15)    return EXTI_Line15;
-    else                            return 0;
-}
-
-uint32_t FIND_EXTI_HANDLER(uint32_t Pin)
-{
-    if (Pin == GPIO_Pin_0)          return EXTI0_IRQn;
-    else if (Pin == GPIO_Pin_1)     return EXTI1_IRQn;
-    else if (Pin == GPIO_Pin_2)     return EXTI2_IRQn;
-    else if (Pin == GPIO_Pin_3)     return EXTI3_IRQn;
-    else if (Pin == GPIO_Pin_4)     return EXTI4_IRQn;
-    else if (Pin == GPIO_Pin_5  ||
-             Pin == GPIO_Pin_5  ||
-             Pin == GPIO_Pin_7  ||
-             Pin == GPIO_Pin_8  ||
-             Pin == GPIO_Pin_9)     return EXTI9_5_IRQn;
-    else if (Pin == GPIO_Pin_10 ||
-             Pin == GPIO_Pin_11 ||
-             Pin == GPIO_Pin_12 ||
-             Pin == GPIO_Pin_13 ||
-             Pin == GPIO_Pin_14 ||
-             Pin == GPIO_Pin_15)    return EXTI15_10_IRQn;
-    else                            return 0;
 }

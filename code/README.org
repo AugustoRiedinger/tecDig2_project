@@ -6,13 +6,13 @@
 - [[#estructura-y-reglas][ESTRUCTURA Y REGLAS]]
 - [[#satdac][SATDAC]]
   - [[#librerias][LIBRERIAS]]
-  - [[#definiciones][DEFINICIONES]]
+  - [[#header][HEADER]]
   - [[#main][MAIN]]
   - [[#interrupciones][INTERRUPCIONES]]
   - [[#funciones-locales][FUNCIONES LOCALES]]
-- [[#erdytc][ERDYTC:]]
+- [[#erdytc][ERDYTC]]
   - [[#librerias-1][LIBRERIAS]]
-  - [[#definiciones-1][DEFINICIONES]]
+  - [[#header-1][HEADER]]
   - [[#main-1][MAIN]]
   - [[#interrupciones-1][INTERRUPCIONES]]
   - [[#funciones-locales-1][FUNCIONES LOCALES]]
@@ -104,7 +104,7 @@ En el proyecto se utilizan las siguientes librerías:
 #include "math.h"
 #+end_src
 
-** DEFINICIONES
+** HEADER
 
 En esta sección se declaran diferentes parámetros con valores fijos que se utilizarán luego a lo largo del código. El propósito de esto yace en independizar los valores abstractos y en su lugar utilizar nombres que ayuden a la interpretación del código.
 
@@ -170,7 +170,8 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
 /*Ciclo de trabajo PWM:*/
 #define dutyCyclePWM 50
 #+end_src
-
+*** VARIABLES GLOBALES
+a
 *** FUNCIONES LOCALES
 
 En esta sección se definen los encabezados de las distintas funciones a utilizar en el código local:
@@ -207,6 +208,8 @@ void INIT_SERVO(void);
 
 /*Mover servo:*/
 void MOVE_SERVO(void);
+
+void TEMP(void);
 #+end_src
 
 ** MAIN
@@ -377,7 +380,7 @@ void INIT_SERVO(void){
     GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 #+end_src
-* ERDYTC:
+* ERDYTC
 :PROPERTIES:
 :header-args: :tangle erdytc/src/main.c
 :END:
@@ -391,6 +394,8 @@ En el proyecto se utilizan las siguientes librerías:
  + *Librerías estándar:* contienen las funciones y códigos básicos para microcontroladores STM32F4XX. Esto incluye todas las funciones para cambiar estados de puertos (/GPIO_Set_Bit()/, etc.) y las específicas como de definición de estructuras.
  + *Control del clock:* contiene las funciones relacionadas al control del clock del MCU, como por ejemplo /RCC_AHB1PeriphClockCmd()/ y demás.
  + *Control de timers:* incluye las funciones /TIM_*()/ necesarias para la configuración de timers del MCU.
+ + *Control de interrupción por pulso externo:* incluye las funciones para la configuración de entradas como EXTI, habilitando la interrupción a un pulso externo.
+ + *Control del protocolo USART:* habilita las funciones necesarias para utilizar el protocolo USART.
  + *Matemáticas:* incluye funciones para realizar operaciones matemáticas básicas en /C/, como sea /pow()/ y demás.
 
 #+begin_src c
@@ -409,17 +414,24 @@ En el proyecto se utilizan las siguientes librerías:
 /*Control de timers:*/
 #include "stm32f4xx_tim.h"
 
+/*Control de interrupcion por pulso externo:*/
+#include "stm32f4xx_exti.h"
+
+/*Control del protocolo USART:*/
+#include "stm32f4xx_usart.h"
+#include "string.h"
+
 /*Matematicas:*/
 #include "math.h"
 #+end_src
 
-** DEFINICIONES
+** HEADER
 
 En esta sección se declaran diferentes parámetros con valores fijos que se utilizarán luego a lo largo del código. El propósito de esto yace en independizar los valores abstractos y en su lugar utilizar nombres que ayuden a la interpretación del código.
 
 #+begin_src c
 /*----------------------------------------------------------------*/
-/*DEFINICIONES:                                                   */
+/*HEADER:                                                         */
 /*----------------------------------------------------------------*/
 #+end_src
 
@@ -476,6 +488,10 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
      |-----+-----+-----+-----|
      | PC9 | PB8 | PC6 | PC8 |
      |-----+-----+-----+-----|
+
+   + *RX USART:* Pin donde se conecta el receptor USART del módulo RF; correspondiente con =PA3=.
+   + *TX USART:* Pin donde se conecta el transmisor USART del módulo RF; correspondiente con =PA2=.
+   + *Baud Rate:* tasa de baudios en la que se dará la comunicación USART. Establecida como predeterminado en 9600 bd.
 
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
    + *Longitud general buffers:* utilzada para definir la longitud fija de buffers para mostrar variables en el LCD.
@@ -553,6 +569,17 @@ LCD_2X16_t LCD_2X16[] = {
 #define _c1 GPIO_Pin_6
 #define _C2 GPIOC
 #define _c2 GPIO_Pin_8
+
+/*RX USART:*/
+#define _RX GPIOA
+#define _rx GPIO_Pin_3
+
+/*TX USART:*/
+#define _TX GPIOA
+#define _tx GPIO_Pin_2
+
+/*Baud Rate USART:*/
+#define baudRate    9600
 
 /* - - - - PARAMS. - - - -*/
 /*Longitud general de buffers:*/
@@ -635,6 +662,16 @@ En esta sección se definen los encabezados de las distintas funciones a utiliza
      + *Returns*: void.
      + *Params.*: Nombre del puerto y pin a configurar.
    + Las demás funciones **_EXTI_** se utilizan dentro de =INIT_EXTINT= para encontrar los parámetros correctos de los pines dados.
+ + *Inicialización puertos USART:* inicializa pines como receptor y transmisor USART. El pin seleccionado debe estar especificado como receptor  o transmisor USART respectivamente para ser configurado correctamente.
+   + *Returns*: void.
+   + *Params.*: Nombre del puerto y pin a configurar; especificar el =baud rate= al que se establece la conexión.
+   + *Funciones de acción de los pulsadores:* utilizadas para realizar las diferentes acciones que dictan los pulsadores. Estas son:
+     + Pedido de la temperatura al SATDAC mediante el receptor USART.
+     + Envió del comando para mover la antena en el SATDAC mediante el transmisor USART.
+     + Guardado de datos en la memoria SD.
+ + *Encontrar PinSource:* función secundaria utilizada para establecer el =PinSource= de un determinado Pin.
+   + *Returns*: =uint8_t= con el =PinSource= del Pin dado.
+   + *Params.*: nombre del Pin a encontrar.
  + *Encontrar CLOCK:* función utilizada para definir el CLOCK correspondiente a un determinado puerto en las funciones.
    + *Returns*: /uint32_t/ con el dato del CLOCK.
    + *Params.*: Nombre del puerto a determinar.
@@ -673,6 +710,17 @@ uint8_t FIND_EXTI_PORT_SOURCE(GPIO_TypeDef* Port);
 uint8_t FIND_EXTI_PIN_SOURCE(uint32_t Pin);
 uint32_t FIND_EXTI_LINE(uint32_t Pin);
 uint32_t FIND_EXTI_HANDLER(uint32_t Pin);
+
+/*Inicialización puertos USART:*/
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
+
+/*Funciones de accion de los pulsadores:*/
+void TEMP(void);
+void SERVO(void);
+void SD(void);
+
+/*Encontrar PinSource:*/
+uint8_t FIND_PINSOURCE(uint32_t Pin);
 
 /*Encontrar CLOCK:*/
 uint32_t FIND_CLOCK(GPIO_TypeDef* Port);
@@ -721,6 +769,9 @@ Esta sección muestra el bucle principal infinito del código:
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
+      if     (switchTemp == 1)  TEMP();
+      else if(switchSD == 1)    SD();
+      else if(switchServo == 1) SERVO();
   }
 }
 #+end_src
@@ -931,6 +982,9 @@ En esta sección se implementan las diferentes funciones del código.
 /*----------------------------------------------------------------*/
 #+end_src
 *** General
+#+begin_src c
+/* * * * * * * * * * * * * GENERAL * * * * * * * * * * * * */
+#+end_src
 **** Inicialización de salida digital
 
 #+begin_src c
@@ -970,6 +1024,9 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
 }
 #+end_src
 *** TIMERS
+#+begin_src c
+/* * * * * * * * * * * * * TIMERS * * * * * * * * * * * * */
+#+end_src
 **** Inicialización TIM3
 
 #+begin_src c
@@ -1015,8 +1072,291 @@ void INIT_TIM3(uint32_t Freq)
 }
 #+end_src
 
-*** LCD
+*** EXTI
+#+begin_src c
+/* * * * * * * * * * * * * EXTI * * * * * * * * * * * * */
+#+end_src
+**** Habilitación de pin EXTI
+#+begin_src c
+void INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin)
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
 
+    /*Enable GPIO clock:*/
+    uint32_t Clock;
+    Clock = FIND_CLOCK(Port);
+    RCC_AHB1PeriphClockCmd(Clock, ENABLE);
+    /* Enable SYSCFG clock */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+    /* Configure pin as input floating */
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Pin = Pin;
+    GPIO_Init(Port, &GPIO_InitStructure);
+
+    /* Connect EXTI Line to pin */
+    SYSCFG_EXTILineConfig(FIND_EXTI_PORT_SOURCE(Port), FIND_EXTI_PIN_SOURCE(Pin));
+
+    /* Configure EXTI Line0 */
+    EXTI_InitStructure.EXTI_Line = FIND_EXTI_LINE(Pin);
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+    EXTI_Init(&EXTI_InitStructure);
+
+    /* Enable and set EXTI Line0 Interrupt to the lowest priority */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    NVIC_InitStructure.NVIC_IRQChannel = FIND_EXTI_HANDLER(Pin);
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+}
+#+end_src
+**** Encontrar port source EXTI
+#+begin_src c
+uint8_t FIND_EXTI_PORT_SOURCE(GPIO_TypeDef* Port)
+{
+    if (Port == GPIOA)      return EXTI_PortSourceGPIOA;
+    else if (Port == GPIOB) return EXTI_PortSourceGPIOB;
+    else if (Port == GPIOC) return EXTI_PortSourceGPIOC;
+    else if (Port == GPIOD) return EXTI_PortSourceGPIOD;
+    else if (Port == GPIOE) return EXTI_PortSourceGPIOE;
+    else if (Port == GPIOF) return EXTI_PortSourceGPIOF;
+    else                    return 0;
+}
+#+end_src
+**** Encontrar pin source EXTI
+#+begin_src c
+uint8_t FIND_EXTI_PIN_SOURCE(uint32_t Pin)
+{
+    if (Pin == GPIO_Pin_0)          return EXTI_PinSource0;
+    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
+    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
+    else if (Pin == GPIO_Pin_2)     return EXTI_PinSource2;
+    else if (Pin == GPIO_Pin_3)     return EXTI_PinSource3;
+    else if (Pin == GPIO_Pin_4)     return EXTI_PinSource4;
+    else if (Pin == GPIO_Pin_5)     return EXTI_PinSource5;
+    else if (Pin == GPIO_Pin_6)     return EXTI_PinSource6;
+    else if (Pin == GPIO_Pin_7)     return EXTI_PinSource7;
+    else if (Pin == GPIO_Pin_8)     return EXTI_PinSource8;
+    else if (Pin == GPIO_Pin_9)     return EXTI_PinSource9;
+    else if (Pin == GPIO_Pin_10)    return EXTI_PinSource10;
+    else if (Pin == GPIO_Pin_11)    return EXTI_PinSource11;
+    else if (Pin == GPIO_Pin_12)    return EXTI_PinSource12;
+    else if (Pin == GPIO_Pin_13)    return EXTI_PinSource13;
+    else if (Pin == GPIO_Pin_14)    return EXTI_PinSource14;
+    else                            return 0;
+}
+#+end_src
+**** Encontrar EXTI line
+#+begin_src c
+uint32_t FIND_EXTI_LINE(uint32_t Pin)
+{
+    if (Pin == GPIO_Pin_0)          return EXTI_Line0;
+    else if (Pin == GPIO_Pin_1)     return EXTI_Line1;
+    else if (Pin == GPIO_Pin_2)     return EXTI_Line2;
+    else if (Pin == GPIO_Pin_3)     return EXTI_Line3;
+    else if (Pin == GPIO_Pin_4)     return EXTI_Line4;
+    else if (Pin == GPIO_Pin_5)     return EXTI_Line5;
+    else if (Pin == GPIO_Pin_6)     return EXTI_Line6;
+    else if (Pin == GPIO_Pin_7)     return EXTI_Line7;
+    else if (Pin == GPIO_Pin_8)     return EXTI_Line8;
+    else if (Pin == GPIO_Pin_9)     return EXTI_Line9;
+    else if (Pin == GPIO_Pin_10)    return EXTI_Line10;
+    else if (Pin == GPIO_Pin_11)    return EXTI_Line11;
+    else if (Pin == GPIO_Pin_12)    return EXTI_Line12;
+    else if (Pin == GPIO_Pin_13)    return EXTI_Line13;
+    else if (Pin == GPIO_Pin_14)    return EXTI_Line14;
+    else if (Pin == GPIO_Pin_15)    return EXTI_Line15;
+    else                            return 0;
+}
+#+end_src
+**** Encontrar EXTI handler
+#+begin_src c
+uint32_t FIND_EXTI_HANDLER(uint32_t Pin)
+{
+    if (Pin == GPIO_Pin_0)          return EXTI0_IRQn;
+    else if (Pin == GPIO_Pin_1)     return EXTI1_IRQn;
+    else if (Pin == GPIO_Pin_2)     return EXTI2_IRQn;
+    else if (Pin == GPIO_Pin_3)     return EXTI3_IRQn;
+    else if (Pin == GPIO_Pin_4)     return EXTI4_IRQn;
+    else if (Pin == GPIO_Pin_5  ||
+             Pin == GPIO_Pin_5  ||
+             Pin == GPIO_Pin_7  ||
+             Pin == GPIO_Pin_8  ||
+             Pin == GPIO_Pin_9)     return EXTI9_5_IRQn;
+    else if (Pin == GPIO_Pin_10 ||
+             Pin == GPIO_Pin_11 ||
+             Pin == GPIO_Pin_12 ||
+             Pin == GPIO_Pin_13 ||
+             Pin == GPIO_Pin_14 ||
+             Pin == GPIO_Pin_15)    return EXTI15_10_IRQn;
+    else                            return 0;
+}
+#+end_src
+*** USART
+#+begin_src c
+/* * * * * * * * * * * * * USART * * * * * * * * * * * * */
+#+end_src
+**** Inicialización de puertos USART
+La configuración del Pin USART se da como sigue:
+
+ + =Baud Rate= especificado por el usario; aunque se utiliza 9600 bd como default.
+ + Largo de palabra de 8 bits.
+ + 1 bit de stop.
+ + Sin paridad.
+ + Control de flujo por hardware deshabilitado (señales RTS y CTS).
+ + Recepción y transmisión habilitadas.
+
+#+begin_src c
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate)
+{
+    /*USART clock enable:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+    /*GPIO clock enable:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port1), ENABLE);
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port2), ENABLE);
+
+    /*GPIO Configuration:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.GPIO_Pin = Pin1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port1, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = Pin2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port2, &GPIO_InitStructure);
+
+    /*Connect USART pins to AF:*/
+    GPIO_PinAFConfig(Port1, FIND_PINSOURCE(Pin1), GPIO_AF_USART2);
+    GPIO_PinAFConfig(Port2, FIND_PINSOURCE(Pin2), GPIO_AF_USART2);
+
+    /*USARTx configuration:*/
+    USART_InitTypeDef USART_InitStructure;
+
+    USART_InitStructure.USART_BaudRate = BaudRate;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+    USART_InitStructure.USART_Parity = USART_Parity_No;
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+
+    USART_Init(USART2, &USART_InitStructure);
+
+    USART_Cmd(USART2, ENABLE);
+}
+#+end_src
+**** Recepción de temperatura
+Esta función utiliza el recpetor USART RF para obtener el parámetro de temperatura entregado por el SATDAC.
+
+La temperatura dada en forma digital se almacena en la variable =tempDig=.
+
+Al finalizar la operación se resetea el flag =switchTemp= para entrar a la subrutina.
+
+#+begin_src c
+void TEMP(void){
+    /*Mientras se reciba un dato:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
+        /*Se guarda lo recibido en forma digital:*/
+        tempDig = USART_ReceiveData(USART2);
+    }
+}
+#+end_src
+**** Transmisión comando antena
+Esta función se encarga de transmitir el comando necesario para inciar el movimiento del servomotor en el SATDAC:
+
+#+begin_src c
+void SERVO(void){
+
+    /*Creacion de la variable para desplegar la antena:*/
+    uint8_t servoON = 1;
+
+    /*Clarear el flag de estado para transmitir:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+    {}
+
+    /*Iniciar la transmision:*/
+    USART_SendData(USART2, servoON);
+}
+#+end_src
+*** SD
+#+begin_src c
+/* * * * * * * * * * * * * SD * * * * * * * * * * * * */
+#+end_src
+
+Uso de la SD??????
+
+#+begin_src c
+void SD(void){
+
+}
+#+end_src
+
+*** LCD
+#+begin_src c
+/* * * * * * * * * * * * * LCD * * * * * * * * * * * * */
+#+end_src
+
+Luego, se definen las funciones activas que se utilizarán en la parte de funcionalidad del código. Estas son:
+
+ + Incialización de los pines del LCD.
+ + Refresco de la pantalla del LCD.
+ + Impresión en la pantalla del LCD.
+
+#+begin_src c
+/*Inicializacion de los pines del LCD:*/
+void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
+{
+    //Inicialización de los pines del LCD:
+    P_LCD_2x16_InitIO(LCD_2X16);
+    // kleine Pause
+    P_LCD_2x16_Delay(TLCD_INIT_PAUSE);
+    // Init Sequenz starten
+    P_LCD_2x16_InitSequenz(LCD_2X16);
+    // LCD-Settings einstellen
+    P_LCD_2x16_Cmd(TLCD_CMD_INIT_DISPLAY, LCD_2X16);
+    P_LCD_2x16_Cmd(TLCD_CMD_ENTRY_MODE, LCD_2X16);
+    // Display einschalten
+    P_LCD_2x16_Cmd(TLCD_CMD_DISP_M1, LCD_2X16);
+    // Display l�schen
+    P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
+    // kleine Pause
+    P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+
+/*Refresco de la pantalla del LCD:*/
+void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
+{
+  // Display l�schen
+  P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
+  // kleine Pause
+  P_LCD_2x16_Delay(TLCD_PAUSE);
+}
+
+/*Impresion en la pantalla del LCD:*/
+void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
+{
+  // Cursor setzen
+  P_LCD_2x16_Cursor(LCD_2X16,x,y);
+  // kompletten String ausgeben
+  while (*ptr != 0) {
+    P_LCD_2x16_Data(*ptr, LCD_2X16);
+    ptr++;
+  }
+}
+#+end_src
 Primero se definen las funciones internas del LCD que se utilizan luego en las funciones activas. Estas son:
 
  + Inicialización de los pines del LCD.
@@ -1163,176 +1503,5 @@ void P_LCD_2x16_Data(uint8_t wert, LCD_2X16_t* LCD_2X16)
   if((wert&0x02)!=0) P_LCD_2x16_PinHi(TLCD_D5, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D5, LCD_2X16);
   if((wert&0x01)!=0) P_LCD_2x16_PinHi(TLCD_D4, LCD_2X16); else P_LCD_2x16_PinLo(TLCD_D4, LCD_2X16);
   P_LCD_2x16_Clk(LCD_2X16);
-}
-#+end_src
-
-Luego, se definen las funciones activas que se utilizarán en la parte de funcionalidad del código. Estas son:
-
- + Incialización de los pines del LCD.
- + Refresco de la pantalla del LCD.
- + Impresión en la pantalla del LCD.
-
-#+begin_src c
-/*Inicializacion de los pines del LCD:*/
-void INIT_LCD_2x16(LCD_2X16_t* LCD_2X16)
-{
-    //Inicialización de los pines del LCD:
-    P_LCD_2x16_InitIO(LCD_2X16);
-    // kleine Pause
-    P_LCD_2x16_Delay(TLCD_INIT_PAUSE);
-    // Init Sequenz starten
-    P_LCD_2x16_InitSequenz(LCD_2X16);
-    // LCD-Settings einstellen
-    P_LCD_2x16_Cmd(TLCD_CMD_INIT_DISPLAY, LCD_2X16);
-    P_LCD_2x16_Cmd(TLCD_CMD_ENTRY_MODE, LCD_2X16);
-    // Display einschalten
-    P_LCD_2x16_Cmd(TLCD_CMD_DISP_M1, LCD_2X16);
-    // Display l�schen
-    P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
-    // kleine Pause
-    P_LCD_2x16_Delay(TLCD_PAUSE);
-}
-
-/*Refresco de la pantalla del LCD:*/
-void CLEAR_LCD_2x16(LCD_2X16_t* LCD_2X16)
-{
-  // Display l�schen
-  P_LCD_2x16_Cmd(TLCD_CMD_CLEAR, LCD_2X16);
-  // kleine Pause
-  P_LCD_2x16_Delay(TLCD_PAUSE);
-}
-
-/*Impresion en la pantalla del LCD:*/
-void PRINT_LCD_2x16(LCD_2X16_t* LCD_2X16, uint8_t x, uint8_t y, char *ptr)
-{
-  // Cursor setzen
-  P_LCD_2x16_Cursor(LCD_2X16,x,y);
-  // kompletten String ausgeben
-  while (*ptr != 0) {
-    P_LCD_2x16_Data(*ptr, LCD_2X16);
-    ptr++;
-  }
-}
-#+end_src
-*** EXTI
-**** Habilitación de pin EXTI
-#+begin_src c
-void INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin)
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
-
-    /*Enable GPIO clock:*/
-    uint32_t Clock;
-    Clock = FIND_CLOCK(Port);
-    RCC_AHB1PeriphClockCmd(Clock, ENABLE);
-    /* Enable SYSCFG clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-    /* Configure pin as input floating */
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_InitStructure.GPIO_Pin = Pin;
-    GPIO_Init(Port, &GPIO_InitStructure);
-
-    /* Connect EXTI Line to pin */
-    SYSCFG_EXTILineConfig(FIND_EXTI_PORT_SOURCE(Port), FIND_EXTI_PIN_SOURCE(Pin));
-
-    /* Configure EXTI Line0 */
-    EXTI_InitStructure.EXTI_Line = FIND_EXTI_LINE(Pin);
-    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&EXTI_InitStructure);
-
-    /* Enable and set EXTI Line0 Interrupt to the lowest priority */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    NVIC_InitStructure.NVIC_IRQChannel = FIND_EXTI_HANDLER(Pin);
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x03;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-}
-#+end_src
-**** Encontrar port source EXTI
-#+begin_src c
-uint8_t FIND_EXTI_PORT_SOURCE(GPIO_TypeDef* Port)
-{
-    if (Port == GPIOA)      return EXTI_PortSourceGPIOA;
-    else if (Port == GPIOB) return EXTI_PortSourceGPIOB;
-    else if (Port == GPIOC) return EXTI_PortSourceGPIOC;
-    else if (Port == GPIOD) return EXTI_PortSourceGPIOD;
-    else if (Port == GPIOE) return EXTI_PortSourceGPIOE;
-    else if (Port == GPIOF) return EXTI_PortSourceGPIOF;
-    else                    return 0;
-}
-#+end_src
-**** Encontrar pin source EXTI
-#+begin_src c
-uint8_t FIND_EXTI_PIN_SOURCE(uint32_t Pin)
-{
-    if (Pin == GPIO_Pin_0)          return EXTI_PinSource0;
-    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
-    else if (Pin == GPIO_Pin_1)     return EXTI_PinSource1;
-    else if (Pin == GPIO_Pin_2)     return EXTI_PinSource2;
-    else if (Pin == GPIO_Pin_3)     return EXTI_PinSource3;
-    else if (Pin == GPIO_Pin_4)     return EXTI_PinSource4;
-    else if (Pin == GPIO_Pin_5)     return EXTI_PinSource5;
-    else if (Pin == GPIO_Pin_6)     return EXTI_PinSource6;
-    else if (Pin == GPIO_Pin_7)     return EXTI_PinSource7;
-    else if (Pin == GPIO_Pin_8)     return EXTI_PinSource8;
-    else if (Pin == GPIO_Pin_9)     return EXTI_PinSource9;
-    else if (Pin == GPIO_Pin_10)    return EXTI_PinSource10;
-    else if (Pin == GPIO_Pin_11)    return EXTI_PinSource11;
-    else if (Pin == GPIO_Pin_12)    return EXTI_PinSource12;
-    else if (Pin == GPIO_Pin_13)    return EXTI_PinSource13;
-    else if (Pin == GPIO_Pin_14)    return EXTI_PinSource14;
-    else                            return 0;
-}
-#+end_src
-**** Encontrar EXTI line
-#+begin_src c
-uint32_t FIND_EXTI_LINE(uint32_t Pin)
-{
-    if (Pin == GPIO_Pin_0)          return EXTI_Line0;
-    else if (Pin == GPIO_Pin_1)     return EXTI_Line1;
-    else if (Pin == GPIO_Pin_2)     return EXTI_Line2;
-    else if (Pin == GPIO_Pin_3)     return EXTI_Line3;
-    else if (Pin == GPIO_Pin_4)     return EXTI_Line4;
-    else if (Pin == GPIO_Pin_5)     return EXTI_Line5;
-    else if (Pin == GPIO_Pin_6)     return EXTI_Line6;
-    else if (Pin == GPIO_Pin_7)     return EXTI_Line7;
-    else if (Pin == GPIO_Pin_8)     return EXTI_Line8;
-    else if (Pin == GPIO_Pin_9)     return EXTI_Line9;
-    else if (Pin == GPIO_Pin_10)    return EXTI_Line10;
-    else if (Pin == GPIO_Pin_11)    return EXTI_Line11;
-    else if (Pin == GPIO_Pin_12)    return EXTI_Line12;
-    else if (Pin == GPIO_Pin_13)    return EXTI_Line13;
-    else if (Pin == GPIO_Pin_14)    return EXTI_Line14;
-    else if (Pin == GPIO_Pin_15)    return EXTI_Line15;
-    else                            return 0;
-}
-#+end_src
-**** Encontrar EXTI handler
-#+begin_src c
-uint32_t FIND_EXTI_HANDLER(uint32_t Pin)
-{
-    if (Pin == GPIO_Pin_0)          return EXTI0_IRQn;
-    else if (Pin == GPIO_Pin_1)     return EXTI1_IRQn;
-    else if (Pin == GPIO_Pin_2)     return EXTI2_IRQn;
-    else if (Pin == GPIO_Pin_3)     return EXTI3_IRQn;
-    else if (Pin == GPIO_Pin_4)     return EXTI4_IRQn;
-    else if (Pin == GPIO_Pin_5  ||
-             Pin == GPIO_Pin_5  ||
-             Pin == GPIO_Pin_7  ||
-             Pin == GPIO_Pin_8  ||
-             Pin == GPIO_Pin_9)     return EXTI9_5_IRQn;
-    else if (Pin == GPIO_Pin_10 ||
-             Pin == GPIO_Pin_11 ||
-             Pin == GPIO_Pin_12 ||
-             Pin == GPIO_Pin_13 ||
-             Pin == GPIO_Pin_14 ||
-             Pin == GPIO_Pin_15)    return EXTI15_10_IRQn;
-    else                            return 0;
 }
 #+end_src
