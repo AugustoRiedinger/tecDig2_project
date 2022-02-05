@@ -209,7 +209,7 @@ void INIT_SERVO(void);
 /*Mover servo:*/
 void MOVE_SERVO(void);
 
-void TEMP(void);
+void RECEIVE_TEMP();
 #+end_src
 
 ** MAIN
@@ -599,6 +599,7 @@ Variables utilizadas en distintas subrutinas del código.
  + *RF:* variables utilizadas en la transmisión de datos por módulos RF. Estas son:
    + *Temperatura en grados:* variable utilizada para guardar la conversión de la temperatura medida en forma digital en grados Celcius.
    + *Temperatura en valor digital:* variable utlizada para guardar el valor digitla de temperatura enviado por el SATDAC.
+   + *Flag recibir temperatura:* utilizado para ingresar a la función para recibir el valor de temperatura una vez que se realizó el pedido de la misma mediante la función =RECEIVE_TEMP()=.
  + *LCD:* variables que se corresponden con el manejo de los mensajes mostrados en el LCD:
    + *Pantalla inicial:* variable utilizada para distinguir cuando se debe mostrar el mensaje inicial en el LCD. Comienza en estado alto debido a que ésta es la primer pantalla que ve cuando se enciende el sistema.
    + *Contador de 5 segundos:* variable utilizada para tomar el tiempo de los mensajes que tardan 5 segundos. Como la interrupción del TIM3 se da cada 250 mseg, se necesitará un valor de 20 en esta variable para comprobar que transcurrieron 5 segundos.
@@ -624,6 +625,9 @@ float tempDeg = 0;
 
 /*Temperatura en valor digital:*/
 uint32_t tempDig = 0;
+
+/*Flag recibir temperatura:*/
+uint8_t receiveTemp = 0;
 
 /* - - - -   LCD   - - - -*/
 /*Pantalla inicial:*/
@@ -666,7 +670,7 @@ En esta sección se definen los encabezados de las distintas funciones a utiliza
    + *Returns*: void.
    + *Params.*: Nombre del puerto y pin a configurar; especificar el =baud rate= al que se establece la conexión.
    + *Funciones de acción de los pulsadores:* utilizadas para realizar las diferentes acciones que dictan los pulsadores. Estas son:
-     + Pedido de la temperatura al SATDAC mediante el receptor USART.
+     + Pedido de la temperatura al SATDAC mediante el receptor USART y recepción de la misma (dos funciones distintas; una para enviar el pedido y otra para recibir el valor de temperatura digital).
      + Envió del comando para mover la antena en el SATDAC mediante el transmisor USART.
      + Guardado de datos en la memoria SD.
  + *Encontrar PinSource:* función secundaria utilizada para establecer el =PinSource= de un determinado Pin.
@@ -715,7 +719,8 @@ uint32_t FIND_EXTI_HANDLER(uint32_t Pin);
 void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
 
 /*Funciones de accion de los pulsadores:*/
-void TEMP(void);
+void RECEIVE_TEMP();
+void SEND_TEMP();
 void SERVO(void);
 void SD(void);
 
@@ -769,8 +774,9 @@ Esta sección muestra el bucle principal infinito del código:
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-      if     (switchTemp == 1)  TEMP();
-      else if(switchSD == 1)    SD();
+      if     (switchTemp  == 1) SEND_TEMP();
+      else if(receiveTemp == 1) RECEIVE_TEMP();
+      else if(switchSD    == 1) SD();
       else if(switchServo == 1) SERVO();
   }
 }
@@ -1258,6 +1264,28 @@ void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, u
     USART_Cmd(USART2, ENABLE);
 }
 #+end_src
+**** Envió de comando para iniciar transmisión de temperatura
+Función utilizada para enviar un comando específico al SATDAC con el objetivo de que el mismo inciacilize el proceso de envío de temperatura.
+
+Luego de que se envía el código se habilita el flag para ingresar a la función de recepción de dicho valor de temperatura.
+
+#+begin_src c
+void SEND_TEMP(void){
+
+    /*Creacion de la variable a transmitir:*/
+    uint8_t SendTemp = 4434;
+
+    /*Clarear el flag de estado para transmitir:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+    {}
+
+    /*Iniciar la transmision:*/
+    USART_SendData(USART2, SendTemp);
+
+    /*Habilitar la recepcion del valor de temperatura:*/
+    receiveTemp = 1;
+}
+#+end_src
 **** Recepción de temperatura
 Esta función utiliza el recpetor USART RF para obtener el parámetro de temperatura entregado por el SATDAC.
 
@@ -1266,12 +1294,15 @@ La temperatura dada en forma digital se almacena en la variable =tempDig=.
 Al finalizar la operación se resetea el flag =switchTemp= para entrar a la subrutina.
 
 #+begin_src c
-void TEMP(void){
+void RECEIVE_TEMP(){
     /*Mientras se reciba un dato:*/
     while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
         /*Se guarda lo recibido en forma digital:*/
         tempDig = USART_ReceiveData(USART2);
     }
+
+    /*Se desactiva el flag para ingresar a esta funcion:*/
+    receiveTemp = 0;
 }
 #+end_src
 **** Transmisión comando antena
@@ -1281,14 +1312,14 @@ Esta función se encarga de transmitir el comando necesario para inciar el movim
 void SERVO(void){
 
     /*Creacion de la variable para desplegar la antena:*/
-    uint8_t servoON = 1;
+    uint8_t ServoON = 1;
 
     /*Clarear el flag de estado para transmitir:*/
     while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
     {}
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, servoON);
+    USART_SendData(USART2, ServoON);
 }
 #+end_src
 *** SD
