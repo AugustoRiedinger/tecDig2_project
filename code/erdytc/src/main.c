@@ -229,6 +229,12 @@ int main(void){
     /*Inicializacion del TIM3:*/
     INIT_TIM3(freqTIM3);
 
+    /*Inicializacion LCD:*/
+    INIT_LCD_2x16(LCD_2X16);
+
+    /*Inicializacion puertos USART:*/
+    INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
+
     /*Inicializacion interrupciones por pulso externo:*/
     INIT_EXTINT(_C1,_c1);
     INIT_EXTINT(_C2,_c2);
@@ -390,6 +396,28 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
     else if (Port == GPIOF) Clock = RCC_AHB1Periph_GPIOF;
     else if (Port == GPIOG) Clock = RCC_AHB1Periph_GPIOG;
     return Clock;
+}
+
+uint8_t FIND_PINSOURCE(uint32_t Pin)
+{
+    if     (Pin == GPIO_Pin_0)  return GPIO_PinSource0;
+    else if(Pin == GPIO_Pin_1)  return GPIO_PinSource1;
+    else if(Pin == GPIO_Pin_2)  return GPIO_PinSource2;
+    else if(Pin == GPIO_Pin_3)  return GPIO_PinSource3;
+    else if(Pin == GPIO_Pin_4)  return GPIO_PinSource4;
+    else if(Pin == GPIO_Pin_5)  return GPIO_PinSource5;
+    else if(Pin == GPIO_Pin_6)  return GPIO_PinSource6;
+    else if(Pin == GPIO_Pin_7)  return GPIO_PinSource7;
+    else if(Pin == GPIO_Pin_8)  return GPIO_PinSource8;
+    else if(Pin == GPIO_Pin_9)  return GPIO_PinSource9;
+    else if(Pin == GPIO_Pin_10) return GPIO_PinSource10;
+    else if(Pin == GPIO_Pin_11) return GPIO_PinSource11;
+    else if(Pin == GPIO_Pin_12) return GPIO_PinSource12;
+    else if(Pin == GPIO_Pin_13) return GPIO_PinSource13;
+    else if(Pin == GPIO_Pin_14) return GPIO_PinSource14;
+    else if(Pin == GPIO_Pin_15) return GPIO_PinSource15;
+    else
+         return 0;
 }
 
 /* * * * * * * * * * * * * TIMERS * * * * * * * * * * * * */

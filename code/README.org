@@ -152,18 +152,20 @@ DMA_InitTypeDef         DMA_InitStructure;
 #+end_src
 
 *** CONSTANTES
-
 Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pines que se utilizan en el hardware, como variables que poseen un valor fijo:
 
  + *Hardware:* se definen los pines en los que se conectan los elementos de hardware del sistema. Estos son:
    + *Servomotor:* conectado en el pin =PA3=.
    + *Sensor de temperatura:* LM35 conectado en el pin =PA0=.
+   + *RX USART:* Pin donde se conecta el receptor USART del módulo RF; correspondiente con =PA3=.
+   + *TX USART:* Pin donde se conecta el transmisor USART del módulo RF; correspondiente con =PA2=.
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
    + *Frecuencia PWM:* utilizada para el control del servomotor; su valor DEBE ser dado en Herzios (/Hz/).
    + *Ciclo de trabajo PWM:* define el duty cycle de la onda de salida PWM para controlar el servomotor.
  + *USART:* definiciones utilizadas en las transmisiones USART.
    + *Código SERVO:* código utilizado para identificar cuando la ERDYTC requiere que se mueva el servomotor. El código es =22=.
    + *Código TEMPERATURA:* código utilizado para identificar cuando la ERDYTC requiere que se envíe el valor de temperatura. El código es =44=.
+   + *Baud Rate:* tasa de baudios a la que se realizará la transmisión. Esta seteada como default en 9600 bd.
 
 #+begin_src c
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
@@ -176,6 +178,14 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
 /*Sensor temperatura:*/
 #define _LM35   GPIOC
 #define _lm35   GPIO_Pin_0
+
+/*RX USART:*/
+#define _RX GPIOA
+#define _rx GPIO_Pin_3
+
+/*TX USART:*/
+#define _TX GPIOA
+#define _tx GPIO_Pin_2
 
 /* - - - - PARAMS. - - - -*/
 /*Frecuencia PWM:*/
@@ -190,6 +200,9 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
 
 /*Codigo TEMPERATURA:*/
 #define tempCode  44
+
+/*Baud Rate:*/
+#define baudRate 9600
 #+end_src
 *** VARIABLES GLOBALES
 Variables utilizadas en distintas subrutinas del código.
@@ -218,6 +231,9 @@ En esta sección se definen los encabezados de las distintas funciones a utiliza
  + *ADC:* funciones utilizadas para configurar y tomar datos del conversor analógico/digital.
    + *Inicializar ADC:* función que inicializa un pin como ADC a partir de un puerto y número de pin dado. Necesita de las funciones =FIND_CLOCK=, =FIND_ADC_TYPE=, =FIND_RCC_APB= y =FIND_CHANNEL= para realizar la configuración.
    + *Leer ADC:* función utilizada para tomar los datos *digitales* del puerto ADC configurado. Se le debe entregar el puerto y pin configurados. Los datos son dados como un =uint32_t=.
+ + *Inicialización puertos USART:* inicializa pines como receptor y transmisor USART. El pin seleccionado debe estar especificado como receptor  o transmisor USART respectivamente para ser configurado correctamente.
+   + *Returns*: void.
+   + *Params.*: Nombre del puerto y pin a configurar; especificar el =baud rate= al que se establece la conexión.
  + *Inicialización TIM3:* función para incializar el TIM3 del MCU con una determinada frecuencia.
    + *Returns*: void.
    + *Params* : freq - Frecuencia en /[Hz]/ a la que se inicializará el TIM3.
@@ -244,9 +260,13 @@ ADC_TypeDef* FIND_ADC_TYPE(GPIO_TypeDef* Port, uint32_t Pin);
 uint32_t     FIND_RCC_APB (ADC_TypeDef*  ADCX);
 uint8_t      FIND_CHANNEL (GPIO_TypeDef* Port, uint32_t Pin);
 uint32_t     FIND_CLOCK   (GPIO_TypeDef* Port);
+uint8_t      FIND_PINSOURCE(uint32_t Pin);
 
 /*Leer ADC:*/
 int32_t READ_ADC(GPIO_TypeDef* Port, uint16_t Pin);
+
+/*Inicialización puertos USART:*/
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
 
 /*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
@@ -303,6 +323,9 @@ Las funciones llamadas para inicializar son las siguientes:
     /*Inicializacion ADC:*/
     INIT_ADC(_LM35, _lm35);
 
+    /*Inicializacion puertos USART:*/
+    INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
+
     /*Inicializacion de timers:*/
     INIT_TIMPWM();
     INIT_PWM();
@@ -343,8 +366,89 @@ En esta sección se implementan las diferentes funciones del código.
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
 #+end_src
-
+*** GENERAL
+**** Encontrar PINSOURCE
+#+begin_src c
+uint8_t FIND_PINSOURCE(uint32_t Pin)
+{
+    if     (Pin == GPIO_Pin_0)  return GPIO_PinSource0;
+    else if(Pin == GPIO_Pin_1)  return GPIO_PinSource1;
+    else if(Pin == GPIO_Pin_2)  return GPIO_PinSource2;
+    else if(Pin == GPIO_Pin_3)  return GPIO_PinSource3;
+    else if(Pin == GPIO_Pin_4)  return GPIO_PinSource4;
+    else if(Pin == GPIO_Pin_5)  return GPIO_PinSource5;
+    else if(Pin == GPIO_Pin_6)  return GPIO_PinSource6;
+    else if(Pin == GPIO_Pin_7)  return GPIO_PinSource7;
+    else if(Pin == GPIO_Pin_8)  return GPIO_PinSource8;
+    else if(Pin == GPIO_Pin_9)  return GPIO_PinSource9;
+    else if(Pin == GPIO_Pin_10) return GPIO_PinSource10;
+    else if(Pin == GPIO_Pin_11) return GPIO_PinSource11;
+    else if(Pin == GPIO_Pin_12) return GPIO_PinSource12;
+    else if(Pin == GPIO_Pin_13) return GPIO_PinSource13;
+    else if(Pin == GPIO_Pin_14) return GPIO_PinSource14;
+    else if(Pin == GPIO_Pin_15) return GPIO_PinSource15;
+    else
+         return 0;
+}
+#+end_src
 *** USART
+**** Inicialización de puertos USART
+La configuración del Pin USART se da como sigue:
+
+ + =Baud Rate= especificado por el usario; aunque se utiliza 9600 bd como default.
+ + Largo de palabra de 8 bits.
+ + 1 bit de stop.
+ + Sin paridad.
+ + Control de flujo por hardware deshabilitado (señales RTS y CTS).
+ + Recepción y transmisión habilitadas.
+
+#+begin_src c
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate)
+{
+    /*USART clock enable:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+    /*GPIO clock enable:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port1), ENABLE);
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port2), ENABLE);
+
+    /*GPIO Configuration:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.GPIO_Pin = Pin1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port1, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = Pin2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port2, &GPIO_InitStructure);
+
+    /*Connect USART pins to AF:*/
+    GPIO_PinAFConfig(Port1, FIND_PINSOURCE(Pin1), GPIO_AF_USART2);
+    GPIO_PinAFConfig(Port2, FIND_PINSOURCE(Pin2), GPIO_AF_USART2);
+
+    /*USARTx configuration:*/
+    USART_InitTypeDef USART_InitStructure;
+
+    USART_InitStructure.USART_BaudRate = BaudRate;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+    USART_InitStructure.USART_Parity = USART_Parity_No;
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+
+    USART_Init(USART2, &USART_InitStructure);
+
+    USART_Cmd(USART2, ENABLE);
+}
+#+end_src
 **** Adquisión temperatura
 Función utilizada para adquirir la temperatura.
 
@@ -1080,6 +1184,12 @@ Las funciones llamadas para inicializar son las siguientes:
     /*Inicializacion del TIM3:*/
     INIT_TIM3(freqTIM3);
 
+    /*Inicializacion LCD:*/
+    INIT_LCD_2x16(LCD_2X16);
+
+    /*Inicializacion puertos USART:*/
+    INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
+
     /*Inicializacion interrupciones por pulso externo:*/
     INIT_EXTINT(_C1,_c1);
     INIT_EXTINT(_C2,_c2);
@@ -1349,6 +1459,30 @@ uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
     else if (Port == GPIOF) Clock = RCC_AHB1Periph_GPIOF;
     else if (Port == GPIOG) Clock = RCC_AHB1Periph_GPIOG;
     return Clock;
+}
+#+end_src
+**** Encontrar PINSOURCE
+#+begin_src c
+uint8_t FIND_PINSOURCE(uint32_t Pin)
+{
+    if     (Pin == GPIO_Pin_0)  return GPIO_PinSource0;
+    else if(Pin == GPIO_Pin_1)  return GPIO_PinSource1;
+    else if(Pin == GPIO_Pin_2)  return GPIO_PinSource2;
+    else if(Pin == GPIO_Pin_3)  return GPIO_PinSource3;
+    else if(Pin == GPIO_Pin_4)  return GPIO_PinSource4;
+    else if(Pin == GPIO_Pin_5)  return GPIO_PinSource5;
+    else if(Pin == GPIO_Pin_6)  return GPIO_PinSource6;
+    else if(Pin == GPIO_Pin_7)  return GPIO_PinSource7;
+    else if(Pin == GPIO_Pin_8)  return GPIO_PinSource8;
+    else if(Pin == GPIO_Pin_9)  return GPIO_PinSource9;
+    else if(Pin == GPIO_Pin_10) return GPIO_PinSource10;
+    else if(Pin == GPIO_Pin_11) return GPIO_PinSource11;
+    else if(Pin == GPIO_Pin_12) return GPIO_PinSource12;
+    else if(Pin == GPIO_Pin_13) return GPIO_PinSource13;
+    else if(Pin == GPIO_Pin_14) return GPIO_PinSource14;
+    else if(Pin == GPIO_Pin_15) return GPIO_PinSource15;
+    else
+         return 0;
 }
 #+end_src
 *** TIMERS

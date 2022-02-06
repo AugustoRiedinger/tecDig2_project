@@ -51,6 +51,14 @@ DMA_InitTypeDef         DMA_InitStructure;
 #define _LM35   GPIOC
 #define _lm35   GPIO_Pin_0
 
+/*RX USART:*/
+#define _RX GPIOA
+#define _rx GPIO_Pin_3
+
+/*TX USART:*/
+#define _TX GPIOA
+#define _tx GPIO_Pin_2
+
 /* - - - - PARAMS. - - - -*/
 /*Frecuencia PWM:*/
 #define freqPWM 10e3
@@ -64,6 +72,9 @@ DMA_InitTypeDef         DMA_InitStructure;
 
 /*Codigo TEMPERATURA:*/
 #define tempCode  44
+
+/*Baud Rate:*/
+#define baudRate 9600
 
 /* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
 /* - - - -  GENERAL  - - - -*/
@@ -82,9 +93,13 @@ ADC_TypeDef* FIND_ADC_TYPE(GPIO_TypeDef* Port, uint32_t Pin);
 uint32_t     FIND_RCC_APB (ADC_TypeDef*  ADCX);
 uint8_t      FIND_CHANNEL (GPIO_TypeDef* Port, uint32_t Pin);
 uint32_t     FIND_CLOCK   (GPIO_TypeDef* Port);
+uint8_t      FIND_PINSOURCE(uint32_t Pin);
 
 /*Leer ADC:*/
 int32_t READ_ADC(GPIO_TypeDef* Port, uint16_t Pin);
+
+/*Inicialización puertos USART:*/
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
 
 /*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
@@ -119,6 +134,9 @@ int main(void){
     /*Inicializacion ADC:*/
     INIT_ADC(_LM35, _lm35);
 
+    /*Inicializacion puertos USART:*/
+    INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
+
     /*Inicializacion de timers:*/
     INIT_TIMPWM();
     INIT_PWM();
@@ -144,6 +162,74 @@ int main(void){
 /*----------------------------------------------------------------*/
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
+
+uint8_t FIND_PINSOURCE(uint32_t Pin)
+{
+    if     (Pin == GPIO_Pin_0)  return GPIO_PinSource0;
+    else if(Pin == GPIO_Pin_1)  return GPIO_PinSource1;
+    else if(Pin == GPIO_Pin_2)  return GPIO_PinSource2;
+    else if(Pin == GPIO_Pin_3)  return GPIO_PinSource3;
+    else if(Pin == GPIO_Pin_4)  return GPIO_PinSource4;
+    else if(Pin == GPIO_Pin_5)  return GPIO_PinSource5;
+    else if(Pin == GPIO_Pin_6)  return GPIO_PinSource6;
+    else if(Pin == GPIO_Pin_7)  return GPIO_PinSource7;
+    else if(Pin == GPIO_Pin_8)  return GPIO_PinSource8;
+    else if(Pin == GPIO_Pin_9)  return GPIO_PinSource9;
+    else if(Pin == GPIO_Pin_10) return GPIO_PinSource10;
+    else if(Pin == GPIO_Pin_11) return GPIO_PinSource11;
+    else if(Pin == GPIO_Pin_12) return GPIO_PinSource12;
+    else if(Pin == GPIO_Pin_13) return GPIO_PinSource13;
+    else if(Pin == GPIO_Pin_14) return GPIO_PinSource14;
+    else if(Pin == GPIO_Pin_15) return GPIO_PinSource15;
+    else
+         return 0;
+}
+
+void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate)
+{
+    /*USART clock enable:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+    /*GPIO clock enable:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port1), ENABLE);
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port2), ENABLE);
+
+    /*GPIO Configuration:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.GPIO_Pin = Pin1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port1, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = Pin2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(Port2, &GPIO_InitStructure);
+
+    /*Connect USART pins to AF:*/
+    GPIO_PinAFConfig(Port1, FIND_PINSOURCE(Pin1), GPIO_AF_USART2);
+    GPIO_PinAFConfig(Port2, FIND_PINSOURCE(Pin2), GPIO_AF_USART2);
+
+    /*USARTx configuration:*/
+    USART_InitTypeDef USART_InitStructure;
+
+    USART_InitStructure.USART_BaudRate = BaudRate;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+    USART_InitStructure.USART_Parity = USART_Parity_No;
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+
+    USART_Init(USART2, &USART_InitStructure);
+
+    USART_Cmd(USART2, ENABLE);
+}
 
 /*Adquisicion temperatura:*/
 void START_TEMP(void)
