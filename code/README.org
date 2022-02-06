@@ -50,18 +50,18 @@ En ambos códigos, se describe paso a paso las líneas y decisiones tomadas. Se 
  + Se definen estructuras utilizadas en la configuración de componentes o pines del MCU.
  + Se definen constantes utilizadas en el código.
  + Se declaran las funciones locales utilizadas.
- + Se inicializan las determinadas componentes y pines dentro del ==main==.
+ + Se inicializan las determinadas componentes y pines dentro del =main=.
  + Se desarrollan las interrupciones configuradas.
  + Se desarrollan las funciones locales declaradas al inicio.
 
 Para la síntesis del código se utilizan las siguientes reglas:
 
- + Funciones creadas por el usuario se identifican en mayúsculas. Ej.: ==void MY_FUNCTION()=.
- + Variables globales o definiciones creadas por el usuario se identifican en minúsculas. Ej.: ==int myGlobalVar = x==.
- + Variables locales creadas por el usuario se identifican con la primer letra en mayúscula y el resto en minúsculas. Ej.: ==int MyLocalVar = x==.
- + Variables o definiciones que identifican pines de la placa se describen con un guión bajo al inicio. Ej.: ==_led = GPIO_Pin_x==.
- + Variables o definiciones que identifican puertos de la placa se describen con un guión bajo al inicio y la primer letra en mayúsculas. Ej.: ==_Led = GPIOx==.
- + Variables o definiciones que identifican pinSources se describen con dos guiones bajos al inicio. Ej.: ==__led = GPIO_PinSourcex==.
+ + Funciones creadas por el usuario se identifican en mayúsculas. Ej.: =void MY_FUNCTION()=.
+ + Variables globales o definiciones creadas por el usuario se identifican en minúsculas. Ej.: =int myGlobalVar = x=.
+ + Variables locales creadas por el usuario se identifican con la primer letra en mayúscula y el resto en minúsculas. Ej.: =int MyLocalVar = x=.
+ + Variables o definiciones que identifican pines de la placa se describen con un guión bajo al inicio. Ej.: =_led = GPIO_Pin_x=.
+ + Variables o definiciones que identifican puertos de la placa se describen con un guión bajo al inicio y la primer letra en mayúsculas. Ej.: =_Led = GPIOx=.
+ + Variables o definiciones que identifican pinSources se describen con dos guiones bajos al inicio. Ej.: =__led = GPIO_PinSourcex=.
 
 * SATDAC
 :PROPERTIES:
