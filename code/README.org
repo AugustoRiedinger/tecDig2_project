@@ -42,7 +42,7 @@ Y la ERDYTC las siguientes:
  + Recepción y transmisión de datos por RF.
 * ESTRUCTURA Y REGLAS
 
-El sistema completo contará con dos codigos interdependientes, pero que se cargan a MCU distintos. Se identifican como SATDAC (cargado a BlackPill según /code//satdac//src//main.c/) y ERDYTC (cargado a NUCLEO según /code//erdytc//src//main.c/)). La edición de los archivos se realizó en Doom Emacs y se utilizó la herramienta de ST Atollic TRUEStudio para cargar los códigos a los MCU y para debuggear.
+El sistema completo contará con dos codigos interdependientes, pero que se cargan a MCU distintos. Se identifican como SATDAC (cargado a BlackPill según [[file:satdac/src/main.c]]) y ERDYTC (cargado a NUCLEO según [[file:erdytc/src/main.c]]). La edición de los archivos se realizó en Doom Emacs y se utilizó la herramienta de ST Atollic TRUEStudio para cargar los códigos a los MCU y para debuggear.
 
 En ambos códigos, se describe paso a paso las líneas y decisiones tomadas. Se siguen los siguientes pasos en la estructura:
 
@@ -50,18 +50,18 @@ En ambos códigos, se describe paso a paso las líneas y decisiones tomadas. Se 
  + Se definen estructuras utilizadas en la configuración de componentes o pines del MCU.
  + Se definen constantes utilizadas en el código.
  + Se declaran las funciones locales utilizadas.
- + Se inicializan las determinadas componentes y pines dentro del */main/*.
+ + Se inicializan las determinadas componentes y pines dentro del ==main==.
  + Se desarrollan las interrupciones configuradas.
  + Se desarrollan las funciones locales declaradas al inicio.
 
 Para la síntesis del código se utilizan las siguientes reglas:
 
- + Funciones creadas por el usuario se identifican en mayúsculas. Ej.: *MY_FUNCTION()*.
- + Variables globales o definiciones creadas por el usuario se identifican en minúsculas. Ej.: *myGlobalVar = x*.
- + Variables locales creadas por el usuario se identifican con la primer letra en mayúscula y el resto en minúsculas. Ej.: *MyLocalVar = x*.
- + Variables o definiciones que identifican pines de la placa se describen con un guión bajo al inicio. Ej.: *_led = GPIO_Pin_x*.
- + Variables o definiciones que identifican puertos de la placa se describen con un guión bajo al inicio y la primer letra en mayúsculas. Ej.: *_Led = GPIOx*.
- + Variables o definiciones que identifican pinSources se describen con dos guiones bajos al inicio. Ej.: *__led = GPIO_PinSourcex*.
+ + Funciones creadas por el usuario se identifican en mayúsculas. Ej.: ==void MY_FUNCTION()=.
+ + Variables globales o definiciones creadas por el usuario se identifican en minúsculas. Ej.: ==int myGlobalVar = x==.
+ + Variables locales creadas por el usuario se identifican con la primer letra en mayúscula y el resto en minúsculas. Ej.: ==int MyLocalVar = x==.
+ + Variables o definiciones que identifican pines de la placa se describen con un guión bajo al inicio. Ej.: ==_led = GPIO_Pin_x==.
+ + Variables o definiciones que identifican puertos de la placa se describen con un guión bajo al inicio y la primer letra en mayúsculas. Ej.: ==_Led = GPIOx==.
+ + Variables o definiciones que identifican pinSources se describen con dos guiones bajos al inicio. Ej.: ==__led = GPIO_PinSourcex==.
 
 * SATDAC
 :PROPERTIES:
@@ -154,6 +154,9 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
    + *Frecuencia PWM:* utilizada para el control del servomotor; su valor DEBE ser dado en Herzios (/Hz/).
    + *Ciclo de trabajo PWM:* define el duty cycle de la onda de salida PWM para controlar el servomotor.
+ + *USART:* definiciones utilizadas en las transmisiones USART.
+   + *Código SERVO:* código utilizado para identificar cuando la ERDYTC requiere que se mueva el servomotor. El código es 22.
+   + *Código TEMPERATURA:* código utilizado para identificar cuando la ERDYTC requiere que se envíe el valor de temperatura. El código es 44.
 
 #+begin_src c
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
@@ -169,9 +172,34 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
 
 /*Ciclo de trabajo PWM:*/
 #define dutyCyclePWM 50
+
+/* - - - -   USART   - - - -*/
+/*Codigo SERVO:*/
+#define servoCode 22
+
+/*Codigo TEMPERATURA:*/
+#define tempCode  44
 #+end_src
 *** VARIABLES GLOBALES
-a
+Variables utilizadas en distintas subrutinas del código.
+
+ + *General:* variables utilizadas en partes genéricas del código.
+   + *Código recibido:* variable que almacena el código recibido enviado por la ERDYTC.
+ + *USART:* variables utilizadas en la transimisión USART RF.
+   + *Almacenamiento valor temperatura:* variable donde se almacena el valor *digital* de leído a través del ADC. Este es el valor que se envía a la ERDYTC.
+
+
+#+begin_src c
+/* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
+/* - - - -  GENERAL  - - - -*/
+/*Codigo recibido:*/
+uint32_t receivedCode = 0;
+/* - - - -   USART  - - - -*/
+/*Almacenamiento valor temperatura:*/
+uint32_t temp = 0;
+
+#+end_src
+
 *** FUNCIONES LOCALES
 
 En esta sección se definen los encabezados de las distintas funciones a utilizar en el código local:
@@ -209,7 +237,11 @@ void INIT_SERVO(void);
 /*Mover servo:*/
 void MOVE_SERVO(void);
 
-void RECEIVE_TEMP();
+/*Comenzar adquision temperatura:*/
+void START_TEMP(void);
+
+/*Enviar valor temperatura:*/
+void SEND_TEMP(void);
 #+end_src
 
 ** MAIN
@@ -251,12 +283,23 @@ Las funciones llamadas para inicializar son las siguientes:
 
 *** BUCLE PPAL.:
 
-Esta sección muestra el bucle principal infinito del código:
+Esta sección muestra el bucle principal infinito del código.
+
+El sistema se encuentra constantemente esperando que la ERDYTC le envíe un determinado comando. Una vez que eso se produce, el código se almacena en la variable =receivedCode=; y dependiendo del valor del mismo se procede a las funciones para tomar un dato de temperatura (=START_TEMP()=) o para mover el servo (=MOVE_SERVO()=).
 
 #+begin_src c
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
+      /*Mientras se reciba un dato:*/
+      while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
+        /*Se guarda lo recibido en forma digital:*/
+        receivedCode = USART_ReceiveData(USART2);}
+
+      /*Se evalua el codigo recivido:*/
+      if      (receivedCode == tempCode)  START_TEMP();
+      else if (receivedCode == servoCode) MOVE_SERVO();
+
   }
 }
 #+end_src
@@ -271,7 +314,22 @@ En esta sección se implementan las diferentes funciones del código.
 /*----------------------------------------------------------------*/
 #+end_src
 
-*** TIMERS:
+*** USART
+**** Adquisión temperatura:
+Función utilizada para adquirir la temperatura.
+
+#+begin_src c
+/*Adquisicion temperatura:*/
+void START_TEMP(void)
+{
+    /*Lectura del valor digital:*/
+    temp = READ_ADC(_LM35, _lm35);
+
+    /*Enviar el dato de temperatura leido:*/
+    SEND_TEMP();
+}
+#+end_src
+*** TIMERS
 **** TIM4:
 Este es el TIMER utilizado para el control de la salida PWM.
 ***** Inicialización del TIMER:
@@ -352,7 +410,7 @@ void INIT_PWM(void){
     TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
 }
 #+end_src
-*** Servomotor:
+*** SERVO
 
 Aquí se describen las funciones relacionadas con el funcionamiento del servomotor.
 
@@ -491,11 +549,14 @@ Aquí se declaran diferentes parámetros, que pueden tanto ser los puertos y pin
 
    + *RX USART:* Pin donde se conecta el receptor USART del módulo RF; correspondiente con =PA3=.
    + *TX USART:* Pin donde se conecta el transmisor USART del módulo RF; correspondiente con =PA2=.
-   + *Baud Rate:* tasa de baudios en la que se dará la comunicación USART. Establecida como predeterminado en 9600 bd.
 
  + *Parámetros:* se definen variables de valor fijo que se utilizarán adelante en el código. Estas son:
    + *Longitud general buffers:* utilzada para definir la longitud fija de buffers para mostrar variables en el LCD.
    + *Agotamiento de cuenta del TIM3:* se setea a una frecuencia de 4 Hz, equivalente a 250 mseg.
+ + *USART:* definiciones utilizadas en las transmisiones USART.
+   + *Código SERVO:* código utilizado para identificar cuando la ERDYTC requiere que se mueva el servomotor. El código es 22.
+   + *Código TEMPERATURA:* código utilizado para identificar cuando la ERDYTC requiere que se envíe el valor de temperatura. El código es 44.
+   + *Baud Rate:* tasa de baudios en la que se dará la comunicación USART. Establecida como predeterminado en 9600 bd.
 
 #+begin_src c
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
@@ -578,15 +639,22 @@ LCD_2X16_t LCD_2X16[] = {
 #define _TX GPIOA
 #define _tx GPIO_Pin_2
 
-/*Baud Rate USART:*/
-#define baudRate    9600
-
 /* - - - - PARAMS. - - - -*/
 /*Longitud general de buffers:*/
 #define buffLen 20
 
 /*Agotamiento de cuenta del TIM3:*/
 #define freqTIM3 4
+
+/* - - - -   USART   - - - -*/
+/*Codigo SERVO:*/
+#define servoCode 22
+
+/*Codigo TEMPERATURA:*/
+#define tempCode  44
+
+/*Baud Rate USART:*/
+#define baudRate    9600
 #+end_src
 *** VARIABLES GLOBALES
 Variables utilizadas en distintas subrutinas del código.
@@ -1273,7 +1341,7 @@ Luego de que se envía el código se habilita el flag para ingresar a la funció
 void SEND_TEMP(void){
 
     /*Creacion de la variable a transmitir:*/
-    uint8_t SendTemp = 4434;
+    uint8_t SendTemp = tempCode;
 
     /*Clarear el flag de estado para transmitir:*/
     while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
@@ -1312,7 +1380,7 @@ Esta función se encarga de transmitir el comando necesario para inciar el movim
 void SERVO(void){
 
     /*Creacion de la variable para desplegar la antena:*/
-    uint8_t ServoON = 1;
+    uint8_t ServoON = servoCode;
 
     /*Clarear el flag de estado para transmitir:*/
     while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)

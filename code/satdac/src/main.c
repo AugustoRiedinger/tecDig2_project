@@ -54,6 +54,21 @@ DMA_InitTypeDef         DMA_InitStructure;
 /*Ciclo de trabajo PWM:*/
 #define dutyCyclePWM 50
 
+/* - - - -   USART   - - - -*/
+/*Codigo SERVO:*/
+#define servoCode 22
+
+/*Codigo TEMPERATURA:*/
+#define tempCode  44
+
+/* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
+/* - - - -  GENERAL  - - - -*/
+/*Codigo recibido:*/
+uint32_t receivedCode = 0;
+/* - - - -   USART  - - - -*/
+/*Almacenamiento valor temperatura:*/
+uint32_t temp = 0;
+
 /* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
 /*Inicializacion TIM3:*/
 void INIT_TIM3(uint32_t freq);
@@ -69,6 +84,12 @@ void INIT_SERVO(void);
 
 /*Mover servo:*/
 void MOVE_SERVO(void);
+
+/*Comenzar adquision temperatura:*/
+void START_TEMP(void);
+
+/*Enviar valor temperatura:*/
+void SEND_TEMP(void);
 
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
@@ -89,12 +110,31 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
+      /*Mientras se reciba un dato:*/
+      while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
+        /*Se guarda lo recibido en forma digital:*/
+        receivedCode = USART_ReceiveData(USART2);}
+
+      /*Se evalua el codigo recivido:*/
+      if      (receivedCode == tempCode)  START_TEMP();
+      else if (receivedCode == servoCode) MOVE_SERVO();
+
   }
 }
 
 /*----------------------------------------------------------------*/
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
+
+/*Adquisicion temperatura:*/
+void START_TEMP(void)
+{
+    /*Lectura del valor digital:*/
+    temp = READ_ADC(_LM35, _lm35);
+
+    /*Enviar el dato de temperatura leido:*/
+    SEND_TEMP();
+}
 
 void INIT_TIMPWM(void){
     /*Declaracion estructura particular:*/

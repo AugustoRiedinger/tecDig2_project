@@ -120,15 +120,22 @@ LCD_2X16_t LCD_2X16[] = {
 #define _TX GPIOA
 #define _tx GPIO_Pin_2
 
-/*Baud Rate USART:*/
-#define baudRate    9600
-
 /* - - - - PARAMS. - - - -*/
 /*Longitud general de buffers:*/
 #define buffLen 20
 
 /*Agotamiento de cuenta del TIM3:*/
 #define freqTIM3 4
+
+/* - - - -   USART   - - - -*/
+/*Codigo SERVO:*/
+#define servoCode 22
+
+/*Codigo TEMPERATURA:*/
+#define tempCode  44
+
+/*Baud Rate USART:*/
+#define baudRate    9600
 
 /* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
 /* - - - -   EXTI   - - - -*/
@@ -150,6 +157,9 @@ float tempDeg = 0;
 
 /*Temperatura en valor digital:*/
 uint32_t tempDig = 0;
+
+/*Flag recibir temperatura:*/
+uint8_t receiveTemp = 0;
 
 /* - - - -   LCD   - - - -*/
 /*Pantalla inicial:*/
@@ -196,7 +206,8 @@ uint32_t FIND_EXTI_HANDLER(uint32_t Pin);
 void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
 
 /*Funciones de accion de los pulsadores:*/
-void TEMP(void);
+void RECEIVE_TEMP();
+void SEND_TEMP();
 void SERVO(void);
 void SD(void);
 
@@ -228,8 +239,9 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-      if     (switchTemp == 1)  TEMP();
-      else if(switchSD == 1)    SD();
+      if     (switchTemp  == 1) SEND_TEMP();
+      else if(receiveTemp == 1) RECEIVE_TEMP();
+      else if(switchSD    == 1) SD();
       else if(switchServo == 1) SERVO();
   }
 }
@@ -584,25 +596,44 @@ void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, u
     USART_Cmd(USART2, ENABLE);
 }
 
-void TEMP(void){
-    /*Mientras se reciba un dato:*/
-    while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
-        /*Se guarda lo recibido en forma digital:*/
-        tempDig = USART_ReceiveData(USART2);
-    }
-}
+void SEND_TEMP(void){
 
-void SERVO(void){
-
-    /*Creacion de la variable para desplegar la antena:*/
-    uint8_t servoON = 1;
+    /*Creacion de la variable a transmitir:*/
+    uint8_t SendTemp = tempCode;
 
     /*Clarear el flag de estado para transmitir:*/
     while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
     {}
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, servoON);
+    USART_SendData(USART2, SendTemp);
+
+    /*Habilitar la recepcion del valor de temperatura:*/
+    receiveTemp = 1;
+}
+
+void RECEIVE_TEMP(){
+    /*Mientras se reciba un dato:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
+        /*Se guarda lo recibido en forma digital:*/
+        tempDig = USART_ReceiveData(USART2);
+    }
+
+    /*Se desactiva el flag para ingresar a esta funcion:*/
+    receiveTemp = 0;
+}
+
+void SERVO(void){
+
+    /*Creacion de la variable para desplegar la antena:*/
+    uint8_t ServoON = servoCode;
+
+    /*Clarear el flag de estado para transmitir:*/
+    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+    {}
+
+    /*Iniciar la transmision:*/
+    USART_SendData(USART2, ServoON);
 }
 
 /* * * * * * * * * * * * * SD * * * * * * * * * * * * */
