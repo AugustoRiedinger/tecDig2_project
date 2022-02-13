@@ -1206,10 +1206,6 @@ Esta sección muestra el bucle principal infinito del código:
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-      if     (switchTemp  == 1) SEND_TEMP();
-      else if(receiveTemp == 1) RECEIVE_TEMP();
-      else if(switchSD    == 1) SD();
-      else if(switchServo == 1) SERVO();
   }
 }
 #+end_src
@@ -1314,6 +1310,10 @@ void TIM3_IRQHandler(void) {
             /*Algoritmo para mostrar el mensaje:*/
             PRINT_LCD_2x16(LCD_2X16, 2, 0, "TEMPERATURA");
             PRINT_LCD_2x16(LCD_2X16, 2, 1, "ACTUALIZADA");
+
+            /*Pedir el valor de temperatura si pasaron 5 segundos:*/
+            if (fiveSecDelay == 20)
+                SEND_TEMP();
         }
 
         /*Pantalla SD - pulsador S2:*/
@@ -1324,6 +1324,10 @@ void TIM3_IRQHandler(void) {
             /*Algoritmo para mostrar el mensaje:*/
             PRINT_LCD_2x16(LCD_2X16, 1, 0, "DATOS GUARDADOS");
             PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+
+            /*Guardar datos en SD si pasaron 5 segundos:*/
+            if (fiveSecDelay == 20)
+                SD();
         }
 
         /*Pantalla mover servo - pulsador S3:*/
@@ -1334,6 +1338,10 @@ void TIM3_IRQHandler(void) {
             /*Algoritmo para mostrar el mensaje:*/
             PRINT_LCD_2x16(LCD_2X16, 0, 0, "ANTENA DESPLEGA");
             PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+
+            /*Enviar comando servo si pasaron 5 segundos:*/
+            if (fiveSecDelay == 20)
+                SERVO();
         }
 
         /*Pantalla menu - pulsador S4:*/
@@ -1349,12 +1357,9 @@ void TIM3_IRQHandler(void) {
         }
 
         /*Reseteo variables:*/
-        else{
+        else {
             initialScreen   = 1;
-            switchTemp      = 0;
-            switchSD        = 0;
-            switchServo     = 0;
-            switchMenu      = 0;
+            fiveSecDelay    = 0;
         }
 
         /*Rehabilitacion del timer:*/
@@ -1723,23 +1728,23 @@ void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, u
 **** Envió de comando para iniciar transmisión de temperatura
 Función utilizada para enviar un comando específico al SATDAC con el objetivo de que el mismo inciacilize el proceso de envío de temperatura.
 
-Luego de que se envía el código se habilita el flag para ingresar a la función de recepción de dicho valor de temperatura.
+En esta función, además se reseta el flag =switchTemp= para ingresar a la misma. Luego de que se envía el código se habilita el flag para ingresar a la función de recepción de dicho valor de temperatura.
 
 #+begin_src c
 void SEND_TEMP(void){
 
-    /*Creacion de la variable a transmitir:*/
-    uint8_t SendTemp = tempCode;
+    /*Resetear flag del switch:*/
+    switchTemp = 0;
 
     /*Clarear el flag de estado para transmitir:*/
     while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
     {}
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, SendTemp);
+    USART_SendData(USART2, tempCode);
 
-    /*Habilitar la recepcion del valor de temperatura:*/
-    receiveTemp = 1;
+    /*Esperar la recepcion de temperatura:*/
+    RECEIVE_TEMP();
 }
 #+end_src
 **** Recepción de temperatura
@@ -1756,16 +1761,16 @@ void RECEIVE_TEMP(){
         /*Se guarda lo recibido en forma digital:*/
         tempDig = USART_ReceiveData(USART2);
     }
-
-    /*Se desactiva el flag para ingresar a esta funcion:*/
-    receiveTemp = 0;
 }
 #+end_src
 **** Transmisión comando antena
-Esta función se encarga de transmitir el comando necesario para inciar el movimiento del servomotor en el SATDAC:
+Esta función se encarga de transmitir el comando necesario para inciar el movimiento del servomotor en el SATDAC. Aquí además se reinicia el flag del switch correspondiente:
 
 #+begin_src c
 void SERVO(void){
+
+    /*Resetear flag switch:*/
+    switchServo = 0;
 
     /*Creacion de la variable para desplegar la antena:*/
     uint8_t ServoON = servoCode;

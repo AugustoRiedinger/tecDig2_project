@@ -3,3 +3,4 @@ code/.metadata/*
 *.o
 *.elf
 *.map
+*.launch

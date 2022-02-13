@@ -19,6 +19,8 @@
 /*Matematicas:*/
 #include "math.h"
 
+#include "string.h"
+
 /*----------------------------------------------------------------*/
 /*DEFINICIONES:                                                   */
 /*----------------------------------------------------------------*/
@@ -43,13 +45,16 @@ DMA_InitTypeDef         DMA_InitStructure;
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
 /* - - - - HARDWARE - - - -*/
 /*Servomotor:*/
-#define _Servo      GPIOA
-#define _servo      GPIO_Pin_3
-#define __servo     GPIO_PinSource3
+#define _Servo1     GPIOC
+#define _servo1     GPIO_Pin_0
+#define __servo1    GPIO_PinSource0
+#define _Servo2     GPIOC
+#define _servo2     GPIO_Pin_3
+#define __servo2    GPIO_PinSource3
 
 /*Sensor temperatura:*/
 #define _LM35   GPIOC
-#define _lm35   GPIO_Pin_0
+#define _lm35   GPIO_Pin_3
 
 /*RX USART:*/
 #define _RX GPIOA
@@ -79,14 +84,25 @@ DMA_InitTypeDef         DMA_InitStructure;
 /* * * * * * * * * * * * * VAR. GLOBAL * * * * * * * * * * * * */
 /* - - - -  GENERAL  - - - -*/
 /*Codigo recibido:*/
-uint32_t receivedCode = 0;
+char receivedCode[8];
+
 /* - - - -   USART  - - - -*/
 /*Almacenamiento valor temperatura:*/
 uint32_t temp = 0;
 
+/* - - - -  TIMERS  - - - -*/
+/*Valor de frecuencia en Hz:*/
+uint32_t freq      = 0;
+uint32_t dutyCycle = 0;
+uint8_t  DE = 6;
+uint8_t  desiredElementsServo2 = 6;
+uint8_t  elements = 100;
+uint8_t  elements2 = 100;
+
+
 /* * * * * * * * * * * * * FUNCIONES * * * * * * * * * * * * */
 /*Inicializacion ADC:*/
-void INIT_ADC(GPIO_TypeDef* Port, uint16_t Pin);
+void INIT_ADC(void);
 
 /*Funciones configuracion ADC:*/
 ADC_TypeDef* FIND_ADC_TYPE(GPIO_TypeDef* Port, uint32_t Pin);
@@ -98,6 +114,9 @@ uint8_t      FIND_PINSOURCE(uint32_t Pin);
 /*Leer ADC:*/
 int32_t READ_ADC(GPIO_TypeDef* Port, uint16_t Pin);
 
+/*Inicializacion de salida digital:*/
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin);
+
 /*Inicialización puertos USART:*/
 void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, uint16_t Pin2, uint32_t BaudRate);
 
@@ -106,6 +125,9 @@ void INIT_TIM3(uint32_t freq);
 
 /*Inicializacion TIM4:*/
 void INIT_TIMPWM(void);
+
+/*Inicializacion TIM3:*/
+void INIT_TIM3(uint32_t freq);
 
 /*Inicializacion PWM:*/
 void INIT_PWM(void);
@@ -131,37 +153,80 @@ int main(void){
     /*Inicio del sistema:*/
     SystemInit();
 
-    /*Inicializacion ADC:*/
-    INIT_ADC(_LM35, _lm35);
-
     /*Inicializacion puertos USART:*/
     INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
 
-    /*Inicializacion de timers:*/
-    INIT_TIMPWM();
-    INIT_PWM();
+    /*Inicializacion salida digital:*/
+    INIT_DO(_Servo1, _servo1);
+    INIT_DO(_Servo2, _servo2);
 
-    /*Servomotor:*/
-    INIT_SERVO();
+    INIT_TIM3(5000);
 
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-      /*Mientras se reciba un dato:*/
-      while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
-        /*Se guarda lo recibido en forma digital:*/
-        receivedCode = USART_ReceiveData(USART2);}
+      if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+          /*Se guarda lo recibido en la varibale Data:*/
+          receivedCode[0] = USART_ReceiveData(USART2);
 
-      /*Se evalua el codigo recivido:*/
-      if      (receivedCode == tempCode)  START_TEMP();
-      else if (receivedCode == servoCode) MOVE_SERVO();
+      if      (!strcmp(receivedCode, "a") || !strcmp(receivedCode, "c"))  DE = 3;
+      else if (!strcmp(receivedCode, "b") || !strcmp(receivedCode, "d"))  DE = 10;
 
+      /*Reseteo de elementos:*/
+      if (elements == 0)
+          elements = 100;
+
+      if (elements2 == 0)
+          elements2 = 100;
   }
 }
 
 /*----------------------------------------------------------------*/
+/*INTERRUPCIONES:                                                 */
+/*----------------------------------------------------------------*/
+
+/*Interrupcion por vencimiento de cuenta de TIM3 cada 1/FS:*/
+void TIM3_IRQHandler(void) {
+    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+
+        if (elements < DE)
+        {
+            GPIO_ResetBits(_Servo1, _servo1);
+            GPIO_ResetBits(_Servo2, _servo2);
+        }
+        else
+        {
+            GPIO_SetBits(_Servo1, _servo1);
+            GPIO_SetBits(_Servo2, _servo2);
+        }
+
+        elements--;
+
+        /*Rehabilitacion del timer:*/
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+    }
+}
+/*----------------------------------------------------------------*/
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
+
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin)
+{
+    /*Estructura de configuracion:*/
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    /*Habilitacion de la senal de reloj para el periferico:*/
+    RCC_AHB1PeriphClockCmd(FIND_CLOCK(Port), ENABLE);
+
+    /*Se configura el pin como entrada (GPI0_MODE_IN):*/
+    GPIO_InitStructure.GPIO_Pin = Pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+
+    /*Se aplica la configuracion definida anteriormente al puerto:*/
+    GPIO_Init(Port, &GPIO_InitStructure);
+}
 
 uint8_t FIND_PINSOURCE(uint32_t Pin)
 {
@@ -231,6 +296,49 @@ void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, u
     USART_Cmd(USART2, ENABLE);
 }
 
+/* * * * * * * * * * * * * TIMERS * * * * * * * * * * * * */
+
+/*Inicializacion del TIM3:*/
+void INIT_TIM3(uint32_t Freq)
+{
+
+    /*Habilitacion del clock para el TIM3:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    /*Habilitacion de la interrupcion por agotamiento de cuenta del TIM3:*/
+    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    /*Actualización de los valores del TIM3:*/
+    SystemCoreClockUpdate();
+    TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+    TIM_Cmd(TIM3, DISABLE);
+
+    /*Definicion de la base de tiempo:*/
+    uint32_t TimeBase = 200e3;
+
+    /*Computar el valor del preescaler en base a la base de tiempo:*/
+    uint16_t PrescalerValue = 0;
+    PrescalerValue = (uint16_t) ((SystemCoreClock / 2) / TimeBase) - 1;
+
+    /*Configuracion del tiempo de trabajo en base a la frecuencia:*/
+    TIM_TimeBaseStructure.TIM_Period = TimeBase / Freq - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+    /*Habilitacion de la interrupcion:*/
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+    /*Habilitacion del contador:*/
+    TIM_Cmd(TIM3, ENABLE);
+}
+
 /*Adquisicion temperatura:*/
 void START_TEMP(void)
 {
@@ -251,63 +359,64 @@ void SEND_TEMP()
     /*Iniciar la transmision:*/
     USART_SendData(USART2, temp);
 }
+/*Inicializacion de dos ADC:*/
+void INIT_ADC(void) {
 
-void INIT_ADC(GPIO_TypeDef* Port, uint16_t Pin)
-{
-    uint32_t Clock;
-    Clock = FIND_CLOCK(Port);
+	GPIO_InitTypeDef GPIO_InitStructure;
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 
-    ADC_TypeDef* ADCX;
-    ADCX = FIND_ADC_TYPE(Port, Pin);
+	/* Puerto C -------------------------------------------------------------*/
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-    uint32_t RCC_APB;
-    RCC_APB = FIND_RCC_APB(ADCX);
+	/* PC1 para entrada analógica */
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_3;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-    uint8_t Channel;
-    Channel = FIND_CHANNEL(Port, Pin);
+	/* Activar ADC1 ----------------------------------------------------------*/
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+	/* Activar ADC2 ----------------------------------------------------------*/
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, ENABLE);
 
-    GPIO_InitTypeDef        GPIO_InitStructure;
-    ADC_InitTypeDef         ADC_InitStructure;
-    ADC_CommonInitTypeDef   ADC_CommonInitStructure;
+	/* ADC Common Init -------------------------------------------------------*/
+	ADC_CommonStructInit(&ADC_CommonInitStructure);
+	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
+	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div4; // max 36 MHz segun datasheet
+	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
+	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInit(&ADC_CommonInitStructure);
 
-    /*Habilitacion Clock en el puerto donde esta conectado el ADC:*/
-    RCC_AHB1PeriphClockCmd(Clock, ENABLE);
+	/* ADC Init ---------------------------------------------------------------*/
+	ADC_StructInit(&ADC_InitStructure);
+	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
+	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
+	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_NbrOfConversion = 1;
+	ADC_Init(ADC1, &ADC_InitStructure);
+	ADC_Init(ADC2, &ADC_InitStructure);
 
-    /*Configuracion del PIN del ADC como entrada ANALOGICA.*/
-    GPIO_StructInit(&GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin     = Pin;
-    GPIO_InitStructure.GPIO_Mode    = GPIO_Mode_AN;
-    GPIO_InitStructure.GPIO_PuPd    = GPIO_PuPd_NOPULL ;
-    GPIO_Init(Port, &GPIO_InitStructure);
+	/* Establecer la configuración de conversión ------------------------------*/
+	ADC_InjectedSequencerLengthConfig(ADC1, 1);
+	ADC_SetInjectedOffset(ADC1, ADC_InjectedChannel_1, 0);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1,
+			ADC_SampleTime_480Cycles);
 
-    /*Activar ADC:*/
-    RCC_APB2PeriphClockCmd(RCC_APB, ENABLE);
+	/* Establecer la configuración de conversión ------------------------------*/
+	ADC_InjectedSequencerLengthConfig(ADC2, 1);
+	ADC_SetInjectedOffset(ADC2, ADC_InjectedChannel_1, 0);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_13, 1,
+			ADC_SampleTime_480Cycles);
 
-    /*ADC Common Init:*/
-    ADC_CommonStructInit(&ADC_CommonInitStructure);
-    ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
-    ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div4;
-    ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
-    ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
-    ADC_CommonInit(&ADC_CommonInitStructure);
+	/* Poner en marcha ADC ----------------------------------------------------*/
+	ADC_Cmd(ADC1, ENABLE);
 
-    /*ADC Init:*/
-    ADC_StructInit (&ADC_InitStructure);
-    ADC_InitStructure.ADC_Resolution             = ADC_Resolution_12b;
-    ADC_InitStructure.ADC_ScanConvMode           = DISABLE;
-    ADC_InitStructure.ADC_ContinuousConvMode     = DISABLE;
-    ADC_InitStructure.ADC_ExternalTrigConvEdge   = ADC_ExternalTrigConvEdge_None;
-    ADC_InitStructure.ADC_DataAlign              = ADC_DataAlign_Right;
-    ADC_InitStructure.ADC_NbrOfConversion        = 1;
-    ADC_Init(ADCX, &ADC_InitStructure);
-
-    /*Establecer la configuración de conversion:*/
-    ADC_InjectedSequencerLengthConfig(ADCX, 1);
-    ADC_SetInjectedOffset(ADCX, ADC_InjectedChannel_1, 0);
-    ADC_InjectedChannelConfig(ADCX, Channel, 1, ADC_SampleTime_480Cycles);
-
-    /*Poner en marcha ADC:*/
-    ADC_Cmd(ADCX, ENABLE);
+	/* Poner en marcha ADC ----------------------------------------------------*/
+    ADC_Cmd(ADC2, ENABLE);
 }
 
 int32_t READ_ADC(GPIO_TypeDef* Port, uint16_t Pin)
@@ -477,21 +586,6 @@ void INIT_PWM(void){
 
     TIM_OC1Init(TIM4, &TIM_OCStruct);
     TIM_OC1PreloadConfig(TIM4, TIM_OCPreload_Enable);
-}
-
-void INIT_SERVO(void){
-    GPIO_InitTypeDef GPIO_InitStruct;
-
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-    GPIO_PinAFConfig(_Servo, __servo, GPIO_AF_TIM4);
-
-    GPIO_InitStruct.GPIO_Pin = _servo;
-    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-    GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 
 void MOVE_SERVO()
