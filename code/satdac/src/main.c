@@ -73,7 +73,7 @@ void GET_TEMP(void)
 {
     /*Lectura del valor digital:*/
     //temp = READ_ADC(_LM35, _lm35);
-    temp = "d";
+    //temp = "d";
 
     /*Enviar el dato de temperatura leido:*/
     SEND_TEMP();
@@ -87,5 +87,5 @@ void SEND_TEMP()
     {}
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, temp);
+    USART_SendData(USART2, "d");
 }

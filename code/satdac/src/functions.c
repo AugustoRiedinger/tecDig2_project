@@ -5,6 +5,8 @@ DECLARACION DE FUNCIONES INTERNAS:
 ------------------------------------------------------------------------------*/
 /*Encontrar el CLOCK de un determinado pin:*/
 uint32_t FIND_CLOCK(GPIO_TypeDef *Port);
+uint8_t FIND_PINSOURCE(uint32_t Pin);
+
 
 /*Control del ADC:*/
 ADC_TypeDef *FIND_ADC_TYPE(GPIO_TypeDef *Port, uint32_t Pin);
@@ -195,32 +197,44 @@ INIT_TIM3
         * @ej
                 - INIT_TIM3();
 ******************************************************************************/
-void INIT_TIM3(uint32_t Freq) {
-  /*Habilitacion del clock del TIM3:*/
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+void INIT_TIM3(uint32_t Freq)
+{
 
-  /*Habilitacion de la interrupcion por vencimiento de cuenta del TIM3:*/
-  //	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-  //	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  //	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-  //	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  //	NVIC_Init(&NVIC_InitStructure);
+    /*Habilitacion del clock para el TIM3:*/
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-  /*Computacion del valor del preescaler:*/
-  uint32_t TimeBase = 200e3;
-  uint16_t PrescalerValue = (uint16_t)((SystemCoreClock / 2) / TimeBase) - 1;
+    /*Habilitacion de la interrupcion por agotamiento de cuenta del TIM3:*/
+    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
 
-  /*Configuracion del tiempo de interrupcion:*/
-  TIM_TimeBaseStructure.TIM_Period = TimeBase / Freq - 1;
-  TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
-  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    /*Actualización de los valores del TIM3:*/
+    SystemCoreClockUpdate();
+    TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+    TIM_Cmd(TIM3, DISABLE);
 
-  TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+    /*Definicion de la base de tiempo:*/
+    uint32_t TimeBase = 200e3;
 
-  /* Selección de TIM3 TRGO */
-  TIM_SelectOutputTrigger(TIM3, TIM_TRGOSource_Update);
-  TIM_Cmd(TIM3, ENABLE);
+    /*Computar el valor del preescaler en base a la base de tiempo:*/
+    uint16_t PrescalerValue = 0;
+    PrescalerValue = (uint16_t) ((SystemCoreClock / 2) / TimeBase) - 1;
+
+    /*Configuracion del tiempo de trabajo en base a la frecuencia:*/
+    TIM_TimeBaseStructure.TIM_Period = TimeBase / Freq - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+    /*Habilitacion de la interrupcion:*/
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+    /*Habilitacion del contador:*/
+    TIM_Cmd(TIM3, ENABLE);
 }
 
 /*****************************************************************************
@@ -369,6 +383,42 @@ void INIT_USART_RX_TX(GPIO_TypeDef* Port1, uint16_t Pin1, GPIO_TypeDef* Port2, u
 /*------------------------------------------------------------------------------
  FUNCIONES INTERNAS:
 ------------------------------------------------------------------------------*/
+uint32_t FIND_CLOCK(GPIO_TypeDef* Port)
+{
+    uint32_t Clock;
+
+    if      (Port == GPIOA) Clock = RCC_AHB1Periph_GPIOA;
+    else if (Port == GPIOB) Clock = RCC_AHB1Periph_GPIOB;
+    else if (Port == GPIOC) Clock = RCC_AHB1Periph_GPIOC;
+    else if (Port == GPIOD) Clock = RCC_AHB1Periph_GPIOD;
+    else if (Port == GPIOE) Clock = RCC_AHB1Periph_GPIOE;
+    else if (Port == GPIOF) Clock = RCC_AHB1Periph_GPIOF;
+    else if (Port == GPIOG) Clock = RCC_AHB1Periph_GPIOG;
+    return Clock;
+}
+
+uint8_t FIND_PINSOURCE(uint32_t Pin)
+{
+    if     (Pin == GPIO_Pin_0)  return GPIO_PinSource0;
+    else if(Pin == GPIO_Pin_1)  return GPIO_PinSource1;
+    else if(Pin == GPIO_Pin_2)  return GPIO_PinSource2;
+    else if(Pin == GPIO_Pin_3)  return GPIO_PinSource3;
+    else if(Pin == GPIO_Pin_4)  return GPIO_PinSource4;
+    else if(Pin == GPIO_Pin_5)  return GPIO_PinSource5;
+    else if(Pin == GPIO_Pin_6)  return GPIO_PinSource6;
+    else if(Pin == GPIO_Pin_7)  return GPIO_PinSource7;
+    else if(Pin == GPIO_Pin_8)  return GPIO_PinSource8;
+    else if(Pin == GPIO_Pin_9)  return GPIO_PinSource9;
+    else if(Pin == GPIO_Pin_10) return GPIO_PinSource10;
+    else if(Pin == GPIO_Pin_11) return GPIO_PinSource11;
+    else if(Pin == GPIO_Pin_12) return GPIO_PinSource12;
+    else if(Pin == GPIO_Pin_13) return GPIO_PinSource13;
+    else if(Pin == GPIO_Pin_14) return GPIO_PinSource14;
+    else if(Pin == GPIO_Pin_15) return GPIO_PinSource15;
+    else
+         return 0;
+}
+
 // LCD:
 void P_LCD_2x16_InitIO(LCD_2X16_t *LCD_2X16) {
   GPIO_InitTypeDef GPIO_InitStructure;

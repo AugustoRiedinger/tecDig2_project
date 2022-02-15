@@ -9,7 +9,5 @@ char receivedCode[8];
 
 /*Valor de frecuencia en Hz:*/
 uint32_t freq = 5000;
-uint8_t  DE = 6;
-uint8_t  elements = 100;
 
 #endif // _USART_H_

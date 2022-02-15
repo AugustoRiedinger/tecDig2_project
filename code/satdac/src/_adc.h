@@ -2,7 +2,7 @@
 #define _ADC_H_
 
 /*Almacenamiento valor temperatura:*/
-uint32_t temp = 0;
+char temp[8];
 
 /*Comenzar adquision temperatura:*/
 void GET_TEMP(void);
