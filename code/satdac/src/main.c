@@ -42,7 +42,7 @@ int main(void){
 
       if      (!strcmp(receivedCode, "a")) DE = 3;
       else if (!strcmp(receivedCode, "b")) DE = 10;
-      else if (!strcmp(receivedCode, "c")) GET_TEMP();
+      else if (!strcmp(receivedCode, "c")) DMA_Cmd(DMA2_Stream0, ENABLE);
 
       /*Reseteo de elementos:*/
       if (elements == 0)
@@ -70,44 +70,22 @@ void TIM3_IRQHandler(void) {
     }
 }
 
-///*Interrupcion por Transfer Request del DMA:*/
-//void DMA2_Stream0_IRQHandler(void)
-//{
-//  /* transmission complete interrupt */
-//  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
-//  {
-//    /*Se para el timer:*/
-//    TIM_Cmd(TIM3, DISABLE);
-//    ADC_Cmd(ADC1, ENABLE);
-//    /*Se habilita el flag para procesar los datos:*/
-//    //adc = 1;
-//
-//    /*Resetear el flag del DMA:*/
-//    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
-//  }
-//}
+/*Interrupcion por Transfer Request del DMA:*/
+void DMA2_Stream0_IRQHandler(void)
+{
+  /*Transmission complete interrupt:*/
+  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
+  {
+	/*Setear flag:*/
+	f_newTempData = 1;
+
+    /*Resetear el flag del DMA:*/
+	DMA_Cmd(DMA2_Stream0, DISABLE);
+    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
+  }
+}
 
 /*----------------------------------------------------------------*/
 /*                    FUNCIONES LOCALES:                          */
 /*----------------------------------------------------------------*/
-/*Adquisicion temperatura:*/
-void GET_TEMP(void)
-{
-    /*Lectura del valor digital:*/
-    //temp = READ_ADC(_LM35, _lm35);
-    //temp = "d";
 
-    /*Enviar el dato de temperatura leido:*/
-    SEND_TEMP();
-}
-
-/*Enviar valor de temperatura:*/
-void SEND_TEMP()
-{
-    /*Clarear el flag de estado para transmitir:*/
-    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-    {}
-
-    /*Iniciar la transmision:*/
-    //USART_SendData(USART2, "d");
-}

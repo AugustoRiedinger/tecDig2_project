@@ -7,6 +7,9 @@
 uint16_t tempDigValues[maxSampling];
 float    tempAnaValues[maxSampling];
 
+/*Flag de que hay nuevos datos para procesar:*/
+uint8_t  f_newTempData = 0;
+
 /*Comenzar adquision temperatura:*/
 void GET_TEMP(void);
 

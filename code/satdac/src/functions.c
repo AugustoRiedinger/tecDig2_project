@@ -133,7 +133,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
 
   /*Habilitacion del DMA:*/
-  DMA_Cmd(DMA2_Stream0, ENABLE);
+  //DMA_Cmd(DMA2_Stream0, ENABLE);
 
   /*Inicio configuracion del ADC1:*/
   ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
