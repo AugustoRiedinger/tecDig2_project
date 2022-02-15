@@ -94,7 +94,8 @@ void 	INIT_TIM3(uint32_t Freq);
 void	INIT_LCD_2x16(LCD_2X16_t*);
 void	CLEAR_LCD_2x16(LCD_2X16_t*);
 void	PRINT_LCD_2x16(LCD_2X16_t*, uint8_t, uint8_t, char*);
-void INIT_USART_RX_TX(GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, uint32_t);
+void    INIT_USART_RX_TX(GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, uint32_t);
+void    INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin);
 
 /*Cierre del header:*/
 #endif
