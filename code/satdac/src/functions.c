@@ -113,8 +113,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
   /*Ancho de cada elemento del arreglo:*/
   DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-  /*Modo circuilar, cuando llega al final del arreglo vuelve a arrancar desde el
-   * primer valor:*/
+  /*Modo circuilar, cuando llega al final del arreglo vuelve a arrancar desde el primer valor:*/
   DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
   /*Maxima prioridad al DMA:*/
   DMA_InitStructure.DMA_Priority = DMA_Priority_High;
@@ -150,26 +149,22 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
   /*Habilita la conversion de varios canales simultaneamente:*/
   ADC_InitStructure.ADC_ScanConvMode = ENABLE;
-  /*Se deshabilita el modo continuo, ya que el ADC se va a activar por el
-   * TIM3:*/
+  /*Se deshabilita el modo continuo, ya que el ADC se va a activar por el TIM3:*/
   ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
   /*Disparo por flanco ascendente:*/
   ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
   /*Define el TMRGO del TIM3 como disparo del ADC:*/
   ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-  /*Cantidad de datos que se van a convertir por disparo del ADC (tension y
-   * corriente):*/
-  ADC_InitStructure.ADC_NbrOfConversion = 2;
+  /*Cantidad de datos que se van a convertir por disparo del ADC (tension y corriente):*/
+  ADC_InitStructure.ADC_NbrOfConversion = 1;
 
   /*Inicializacion del ADC con los parametros establecidos:*/
   ADC_Init(ADC1, &ADC_InitStructure);
 
   /*Configuracion de los canales del ADC:*/
-  /*Canal 10 ADC1 (PC0) con orden 1 para conversion de tension:*/
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_480Cycles);
-  /*Canal 13 ADC1 (PC13) con orden 2 para conversion de corriente:*/
-  ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 2, ADC_SampleTime_480Cycles);
+  /*Canal 13 ADC1 (P13) con orden 2 para conversion de corriente:*/
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 1, ADC_SampleTime_480Cycles);
   /*Habilitacion del pedido del DMA en el ADC1:*/
   ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
   ADC_DMACmd(ADC1, ENABLE);
@@ -178,7 +173,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
 
   /* PC1 para entrada analógica */
   GPIO_StructInit(&GPIO_InitStructure);
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_3;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(GPIOC, &GPIO_InitStructure);

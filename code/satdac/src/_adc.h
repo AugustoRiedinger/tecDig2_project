@@ -1,8 +1,11 @@
 #ifndef _ADC_H_
 #define _ADC_H_
 
+#define maxSampling 1000
+
 /*Almacenamiento valor temperatura:*/
-char temp[8];
+uint_16t tempDigValues[maxSampling];
+float    tempAnaValues[maxSampling];
 
 /*Comenzar adquision temperatura:*/
 void GET_TEMP(void);

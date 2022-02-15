@@ -18,16 +18,20 @@
 int main(void){
 
 /* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
-    /*Inicio del sistema:*/
-    SystemInit();
+  /*Inicio del sistema:*/
+  SystemInit();
 
-    /*Inicializacion puertos USART:*/
-    INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
+  /*Inicializacion puertos USART:*/
+  INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
 
-    /*Inicializacion salida digital:*/
-    INIT_DO(_Servo, _servo);
+  /*Inicializacion del servo como salida digital:*/
+  INIT_DO(_Servo, _servo);
 
-    INIT_TIM3(freq);
+  /*Inicialización del TIM3 a 5 kHz:*/
+  INIT_TIM3(freq);
+
+  /*Inicialización del ADC por DMA:*/
+  INIT_ADC1DMA(tempDigValues, maxSampling);
 
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
@@ -47,7 +51,7 @@ int main(void){
 }
 
 /*----------------------------------------------------------------*/
-/*INTERRUPCIONES:                                                 */
+/*                     INTERRUPCIONES:                            */
 /*----------------------------------------------------------------*/
 
 /*Interrupcion por vencimiento de cuenta de TIM3 cada 1/FS:*/
@@ -65,8 +69,26 @@ void TIM3_IRQHandler(void) {
         TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     }
 }
+
+/*Interrupcion por Transfer Request del DMA:*/
+void DMA2_Stream0_IRQHandler(void)
+{
+  /* transmission complete interrupt */
+  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
+  {
+    /*Se para el timer:*/
+    TIM_Cmd(TIM3, DISABLE);
+
+    /*Se habilita el flag para procesar los datos:*/
+    //adc = 1;
+
+    /*Resetear el flag del DMA:*/
+    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
+  }
+}
+
 /*----------------------------------------------------------------*/
-/*FUNCIONES LOCALES:                                              */
+/*                    FUNCIONES LOCALES:                          */
 /*----------------------------------------------------------------*/
 /*Adquisicion temperatura:*/
 void GET_TEMP(void)
