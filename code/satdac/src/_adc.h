@@ -4,7 +4,7 @@
 #define maxSampling 1000
 
 /*Almacenamiento valor temperatura:*/
-uint_16t tempDigValues[maxSampling];
+uint16_t tempDigValues[maxSampling];
 float    tempAnaValues[maxSampling];
 
 /*Comenzar adquision temperatura:*/

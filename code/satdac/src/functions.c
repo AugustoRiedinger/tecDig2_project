@@ -149,12 +149,12 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
   /*Habilita la conversion de varios canales simultaneamente:*/
   ADC_InitStructure.ADC_ScanConvMode = ENABLE;
-  /*Se deshabilita el modo continuo, ya que el ADC se va a activar por el TIM3:*/
-  ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
+  /*Se habilita el modo continuo, ya que el ADC NO se va a activar por el TIM3:*/
+  ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
   /*Disparo por flanco ascendente:*/
-  ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
+  //ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
   /*Define el TMRGO del TIM3 como disparo del ADC:*/
-  ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;
+  //ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
   /*Cantidad de datos que se van a convertir por disparo del ADC (tension y corriente):*/
   ADC_InitStructure.ADC_NbrOfConversion = 1;
@@ -163,7 +163,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   ADC_Init(ADC1, &ADC_InitStructure);
 
   /*Configuracion de los canales del ADC:*/
-  /*Canal 13 ADC1 (P13) con orden 2 para conversion de corriente:*/
+  /*Canal 13 ADC1 (P13) con orden 1 para conversion:*/
   ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 1, ADC_SampleTime_480Cycles);
   /*Habilitacion del pedido del DMA en el ADC1:*/
   ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
@@ -171,7 +171,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
 
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-  /* PC1 para entrada analógica */
+  /* PC3 para entrada analógica */
   GPIO_StructInit(&GPIO_InitStructure);
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;

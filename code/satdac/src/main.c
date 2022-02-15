@@ -70,22 +70,22 @@ void TIM3_IRQHandler(void) {
     }
 }
 
-/*Interrupcion por Transfer Request del DMA:*/
-void DMA2_Stream0_IRQHandler(void)
-{
-  /* transmission complete interrupt */
-  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
-  {
-    /*Se para el timer:*/
-    TIM_Cmd(TIM3, DISABLE);
-
-    /*Se habilita el flag para procesar los datos:*/
-    //adc = 1;
-
-    /*Resetear el flag del DMA:*/
-    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
-  }
-}
+///*Interrupcion por Transfer Request del DMA:*/
+//void DMA2_Stream0_IRQHandler(void)
+//{
+//  /* transmission complete interrupt */
+//  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
+//  {
+//    /*Se para el timer:*/
+//    TIM_Cmd(TIM3, DISABLE);
+//    ADC_Cmd(ADC1, ENABLE);
+//    /*Se habilita el flag para procesar los datos:*/
+//    //adc = 1;
+//
+//    /*Resetear el flag del DMA:*/
+//    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
+//  }
+//}
 
 /*----------------------------------------------------------------*/
 /*                    FUNCIONES LOCALES:                          */
@@ -109,5 +109,5 @@ void SEND_TEMP()
     {}
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, "d");
+    //USART_SendData(USART2, "d");
 }
