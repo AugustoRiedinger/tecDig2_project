@@ -16,6 +16,7 @@
 /*Control de pulsadores - interrupciones externas:*/
 #include "_exti.h"
 
+char hola[8] = "hola";
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
 /*----------------------------------------------------------------*/
@@ -54,6 +55,8 @@ int main(void){
           /*Se guarda lo recibido en la varibale Data:*/
           receivedCode[0] = USART_ReceiveData(USART2);
 
+      USART_SendData(USART2, hola[0]);
+
       if      (!strcmp(receivedCode, "a")) DE = 3;
       else if (!strcmp(receivedCode, "b")) DE = 10;
       else if (!strcmp(receivedCode, "c")) DMA_Cmd(DMA2_Stream0, ENABLE);
@@ -89,19 +92,17 @@ void TIM3_IRQHandler(void) {
 }
 
 /*Interrupcion por Transfer Request del DMA:*/
-void DMA2_Stream0_IRQHandler(void)
-{
-  /*Transmission complete interrupt:*/
-  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
-  {
-    /*Setear flag:*/
-    f_newTempData = 1;
-
-    /*Resetear el flag del DMA:*/
-    DMA_Cmd(DMA2_Stream0, DISABLE);
-    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
-  }
-}
+//void DMA2_Stream0_IRQHandler(void)
+//{
+//  /*Transmission complete interrupt:*/
+//  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
+//  {
+//    /*Setear flag:*/
+//    f_newTempData = 1;
+//
+//    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
+//  }
+//}
 
 /*Interrupcion al pulso por PC6-C1 o PC8-C2:*/
 void EXTI9_5_IRQHandler(void)
@@ -159,11 +160,11 @@ void LCD()
     PRINT_LCD_2x16(LCD_2X16, 2, 0, "TD II-ERDYTC");
 
     /*Comprobar si hay nuevos datos de temperatura:*/
-    if (f_newTempData == 1)
-      PROCESS_ADC_DATA();
+    //if (f_newTempData == 1)
+      //PROCESS_ADC_DATA();
 
     /*Mostrar el ultimo valor de temperatura en la pantalla:*/
-    sprintf(BuffTemp, "%.1f", tempAvg);
+    sprintf(BuffTemp, "%c", receivedCode[0]);
     PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
     PRINT_LCD_2x16(LCD_2X16, 7, 1, BuffTemp);
   }
@@ -221,10 +222,10 @@ void LCD()
 void PROCESS_ADC_DATA()
 {
   for(uint8_t i = 0; i < maxSampling; i++)
-    tempAnaValues[i] = tempDigValues[i] * 3 / 4095;
+    tempAnaValues[i] = tempDigValues[i] * 3.0 / 4095.0;
 
   for(uint8_t i = 0; i < maxSampling; i++)
 	tempAvg = tempAvg + tempAnaValues[i];
 
-  tempAvg = tempAvg / maxSampling;
+  //tempAvg = tempAvg / maxSampling;
 }

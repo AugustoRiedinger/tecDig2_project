@@ -130,23 +130,23 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 
   /*Configuracion del handler para la interrupcion:*/
-  NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
+//  NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
+//  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+//  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+//  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//  NVIC_Init(&NVIC_InitStructure);
 
   DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
 
   /*Habilitacion del DMA:*/
-  //DMA_Cmd(DMA2_Stream0, ENABLE);
+  DMA_Cmd(DMA2_Stream0, ENABLE);
 
   /*Inicio configuracion del ADC1:*/
   ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
   ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
   /*Se habilita el acceso del DMA:*/
   ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
-  ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+  //ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 
   /*Cargar la configuracion:*/
   ADC_CommonInit(&ADC_CommonInitStructure);
@@ -154,7 +154,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   /*Resolucion del ADC en 12 bits:*/
   ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
   /*Habilita la conversion de varios canales simultaneamente:*/
-  ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+  ADC_InitStructure.ADC_ScanConvMode = DISABLE;
   /*Se habilita el modo continuo, ya que el ADC NO se va a activar por el TIM3:*/
   ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
   /*Disparo por flanco ascendente:*/
@@ -163,7 +163,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   //ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
   /*Cantidad de datos que se van a convertir por disparo del ADC (tension y corriente):*/
-  ADC_InitStructure.ADC_NbrOfConversion = 1;
+  //ADC_InitStructure.ADC_NbrOfConversion = 1;
 
   /*Inicializacion del ADC con los parametros establecidos:*/
   ADC_Init(ADC1, &ADC_InitStructure);
