@@ -38,6 +38,9 @@ int main(void){
   /*Inicialización del ADC por DMA:*/
   INIT_ADC1DMA(tempDigValues, maxSampling);
 
+  /*Inicializacion TIM2:*/
+  INIT_TIM2(freq);
+
   /*Inicializacion LCD:*/
   INIT_LCD_2x16(LCD_2X16);
 
@@ -47,6 +50,7 @@ int main(void){
   INIT_DO(_F1,_f1);
   INIT_DO(_F2,_f2);
   GPIO_SetBits(_F1, _f1);
+
 
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
@@ -77,32 +81,33 @@ int main(void){
 void TIM3_IRQHandler(void) {
     if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
 
-    	f_lcd++;
+      f_lcd++;
 
-        if (elements < DE)
-            GPIO_ResetBits(_Servo, _servo);
-        else
-            GPIO_SetBits(_Servo, _servo);
+      if (elements < DE)
+        GPIO_ResetBits(_Servo, _servo);
+      else
+        GPIO_SetBits(_Servo, _servo);
 
-        elements--;
+      elements--;
 
-        /*Rehabilitacion del timer:*/
-        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+      /*Rehabilitacion del timer:*/
+      TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     }
 }
 
 /*Interrupcion por Transfer Request del DMA:*/
-//void DMA2_Stream0_IRQHandler(void)
-//{
-//  /*Transmission complete interrupt:*/
-//  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
-//  {
-//    /*Setear flag:*/
-//    f_newTempData = 1;
-//
-//    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
-//  }
-//}
+void DMA2_Stream0_IRQHandler(void)
+{
+  /* transmission complete interrupt */
+  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
+  {
+    /*Se para el timer:*/
+    TIM_Cmd(TIM3, DISABLE);
+
+    /*Resetear el flag del DMA:*/
+    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
+  }
+}
 
 /*Interrupcion al pulso por PC6-C1 o PC8-C2:*/
 void EXTI9_5_IRQHandler(void)
@@ -131,12 +136,6 @@ void EXTI9_5_IRQHandler(void)
 
   /*Evitar que se muestre la pantalla incial:*/
   initialScreen = 0;
-}
-
-/*Interrupcion por tiempo - Systick cada 250mseg:*/
-void SysTick_Handler()
-{
-  //f_lcd++;
 }
 
 /*----------------------------------------------------------------*/
@@ -225,7 +224,7 @@ void PROCESS_ADC_DATA()
     tempAnaValues[i] = tempDigValues[i] * 3.0 / 4095.0;
 
   for(uint8_t i = 0; i < maxSampling; i++)
-	tempAvg = tempAvg + tempAnaValues[i];
+    tempAvg = tempAvg + tempAnaValues[i];
 
   //tempAvg = tempAvg / maxSampling;
 }

@@ -94,7 +94,8 @@ INIT_ADC
         * @ej
                 - INIT_ADC(GPIOX, GPIO_Pin_X);
 ******************************************************************************/
-void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
+void INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize)
+{
   /*Habilitacion del clock de los perficos del DMA y el ADC1::*/
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
@@ -106,7 +107,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   /*Registro donde se guardan los valores convertidos:*/
   DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;
   /*Direccion del arreglo donde se guardan los valores leidos:*/
-  DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)adcArray;
+  DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) adcArray;
   /*Establecer que el DMA transmitira a memoria:*/
   DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
   /*Establecer la cantidad de valores a convertir:*/
@@ -130,11 +131,11 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 
   /*Configuracion del handler para la interrupcion:*/
-//  NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
-//  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-//  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-//  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-//  NVIC_Init(&NVIC_InitStructure);
+  NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
 
   DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
 
@@ -146,7 +147,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
   /*Se habilita el acceso del DMA:*/
   ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
-  //ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+  ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 
   /*Cargar la configuracion:*/
   ADC_CommonInit(&ADC_CommonInitStructure);
@@ -154,22 +155,22 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
   /*Resolucion del ADC en 12 bits:*/
   ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
   /*Habilita la conversion de varios canales simultaneamente:*/
-  ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-  /*Se habilita el modo continuo, ya que el ADC NO se va a activar por el TIM3:*/
-  ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
+  ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+  /*Se deshabilita el modo continuo, ya que el ADC se va a activar por el TIM3:*/
+  ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
   /*Disparo por flanco ascendente:*/
-  //ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
+  ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
   /*Define el TMRGO del TIM3 como disparo del ADC:*/
-  //ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;
+  ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
   /*Cantidad de datos que se van a convertir por disparo del ADC (tension y corriente):*/
-  //ADC_InitStructure.ADC_NbrOfConversion = 1;
+  ADC_InitStructure.ADC_NbrOfConversion = 1;
 
   /*Inicializacion del ADC con los parametros establecidos:*/
   ADC_Init(ADC1, &ADC_InitStructure);
 
   /*Configuracion de los canales del ADC:*/
-  /*Canal 13 ADC1 (P13) con orden 1 para conversion:*/
+  /*Canal 13 ADC1 (PC13) con orden 2 para conversion de corriente:*/
   ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 1, ADC_SampleTime_480Cycles);
   /*Habilitacion del pedido del DMA en el ADC1:*/
   ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
@@ -177,7 +178,7 @@ void INIT_ADC1DMA(uint16_t *adcArray, uint32_t bufferSize) {
 
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-  /* PC3 para entrada analógica */
+  /* PC1 para entrada analógica */
   GPIO_StructInit(&GPIO_InitStructure);
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
@@ -236,6 +237,29 @@ void INIT_TIM3(uint32_t Freq)
 
     /*Habilitacion del contador:*/
     TIM_Cmd(TIM3, ENABLE);
+}
+
+void INIT_TIM2(uint32_t Freq)
+{
+  /*Habilitacion de la senal de reloj para el periferico:*/
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+  /*Computacion del valor del preescaler:*/
+  uint32_t TimeBase = 200e3;
+  uint16_t PrescalerValue = (uint16_t) ((SystemCoreClock / 2) / TimeBase) - 1;
+
+  /*Configuracion del tiempo de interrupcion:*/
+  TIM_TimeBaseStructure.TIM_Period = TimeBase / Freq - 1;
+  TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+  /*Cargar valores a la estructura del TIM4:*/
+  TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+
+  /*Seleccion de TIM3 TRGO:*/
+  TIM_SelectOutputTrigger(TIM2, TIM_TRGOSource_Update);
+  TIM_Cmd(TIM2, ENABLE);
 }
 
 /*****************************************************************************

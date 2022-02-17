@@ -87,15 +87,16 @@ typedef struct {
 /*------------------------------------------------------------------------------
 DECLARACION FUNCIONES DE FUNCTIONS.C :
 ------------------------------------------------------------------------------*/
-void 	INIT_DO(GPIO_TypeDef* Port, uint32_t Pin);
-void 	INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize);
-void 	ADC_INIT(void);
-void 	INIT_TIM3(uint32_t Freq);
-void	INIT_LCD_2x16(LCD_2X16_t*);
-void	CLEAR_LCD_2x16(LCD_2X16_t*);
-void	PRINT_LCD_2x16(LCD_2X16_t*, uint8_t, uint8_t, char*);
-void    INIT_USART_RX_TX(GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, uint32_t);
-void    INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin);
+void INIT_DO(GPIO_TypeDef* Port, uint32_t Pin);
+void INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize);
+void ADC_INIT(void);
+void INIT_TIM3(uint32_t Freq);
+void INIT_LCD_2x16(LCD_2X16_t*);
+void CLEAR_LCD_2x16(LCD_2X16_t*);
+void PRINT_LCD_2x16(LCD_2X16_t*, uint8_t, uint8_t, char*);
+void INIT_USART_RX_TX(GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, uint32_t);
+void INIT_EXTINT(GPIO_TypeDef* Port, uint16_t Pin);
+void INIT_TIM2(uint32_t Freq);
 
 /*Cierre del header:*/
 #endif
