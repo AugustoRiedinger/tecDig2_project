@@ -8,6 +8,8 @@
 #include "_usart.h"
 #include "_exti.h"
 
+char receivedCode[8];
+
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
 /*----------------------------------------------------------------*/
@@ -36,6 +38,9 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
+      if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+          /*Se guarda lo recibido en la varibale Data:*/
+          receivedCode[0] = USART_ReceiveData(USART2);
   }
 }
 
@@ -49,6 +54,7 @@ void TIM3_IRQHandler(void) {
 
         /*Buffer para mostrar el valor de temperatura:*/
         char BuffTemp[buffLen];
+        char BuffTest[buffLen];
 
         /*Refresco LCD:*/
         CLEAR_LCD_2x16(LCD_2X16);
@@ -60,6 +66,9 @@ void TIM3_IRQHandler(void) {
             sprintf(BuffTemp, "%.1f", tempDeg);
             PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
             PRINT_LCD_2x16(LCD_2X16, 7, 1, BuffTemp);
+
+            sprintf(BuffTest, "%c", receivedCode[0]);
+            PRINT_LCD_2x16(LCD_2X16, 0, 0, BuffTest);
         }
 
         /*Pantalla actualizar temperatura - pulsador S1:*/
@@ -164,39 +173,31 @@ void SEND_TEMP(void){
     /*Resetear flag del switch:*/
     switchTemp = 0;
 
-    /*Clarear el flag de estado para transmitir:*/
-    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-    {}
+//    /*Clarear el flag de estado para transmitir:*/
+//    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+//    {}
+
+    char tempCode[8] = "t";
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, tempCode);
+    USART_SendData(USART2, tempCode[0]);
 
-    /*Esperar la recepcion de temperatura:*/
-    RECEIVE_TEMP();
 }
 
-void RECEIVE_TEMP(){
-    /*Mientras se reciba un dato:*/
-    while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET){
-        /*Se guarda lo recibido en forma digital:*/
-        tempDig = USART_ReceiveData(USART2);
-    }
-}
 
 void SERVO(void){
 
     /*Resetear flag switch:*/
     switchServo = 0;
 
-    /*Creacion de la variable para desplegar la antena:*/
-    uint8_t ServoON = servoCode;
-
     /*Clarear el flag de estado para transmitir:*/
-    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-    {}
+//    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+//    {}
+
+    char servoCode[8] = "a";
 
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, ServoON);
+    USART_SendData(USART2, servoCode[0]);
 }
 
 /* * * * * * * * * * * * * SD * * * * * * * * * * * * */
@@ -205,4 +206,10 @@ void SD(void){
 
   /*Resetear flag switch:*/
   switchSD = 0;
+
+  char servoCode2[8] = "b";
+
+  /*Iniciar la transmision:*/
+  USART_SendData(USART2, servoCode2[0]);
+
 }

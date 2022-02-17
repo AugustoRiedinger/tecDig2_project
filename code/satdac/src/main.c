@@ -16,6 +16,8 @@
 /*Control de pulsadores - interrupciones externas:*/
 #include "_exti.h"
 
+char test[8] = "d";
+
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
 /*----------------------------------------------------------------*/
@@ -46,6 +48,8 @@ int main(void){
       if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
           /*Se guarda lo recibido en la varibale Data:*/
           receivedCode[0] = USART_ReceiveData(USART2);
+
+      USART_SendData(USART2, test[0]);
 
       if      (!strcmp(receivedCode, "a")) DE = 3;
       else if (!strcmp(receivedCode, "b")) DE = 10;
