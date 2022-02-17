@@ -9,6 +9,7 @@
 #include "_exti.h"
 
 char receivedCode[8];
+uint8_t i = 0;
 
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
@@ -131,6 +132,19 @@ void TIM3_IRQHandler(void) {
             fiveSecDelay    = 0;
         }
 
+        /*Se apaga F1 para medir a continuacion S3 y S4 mediante F2:*/
+        if (i == 0)
+        {
+          GPIO_ResetBits(_F1, _f1);
+          GPIO_SetBits(_F2, _f2);
+          i = 1;
+        }
+        else {
+          GPIO_ResetBits(_F2, _f2);
+          GPIO_SetBits(_F1, _f1);
+          i = 0;
+        }
+
         /*Rehabilitacion del timer:*/
         TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     }
@@ -145,6 +159,7 @@ void EXTI9_5_IRQHandler(void)
       if(GPIO_ReadInputDataBit(_F1, _f1))       switchTemp = 1;
       /*Si ademas de estar C1 en 1 tambien esta F2 en 1, entonces el switch pulsado es S2:*/
       else if(GPIO_ReadInputDataBit(_F2, _f2))  switchSD = 1;
+
 
       /*Clear the EXTI line 6 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line6);

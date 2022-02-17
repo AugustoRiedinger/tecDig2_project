@@ -37,10 +37,10 @@ int main(void){
   INIT_TIM3(freq);
 
   /*Inicialización del ADC por DMA:*/
-  INIT_ADC1DMA(tempDigValues, maxSampling);
+  //INIT_ADC1DMA(tempDigValues, maxSampling);
 
   /*Inicializacion TIM2:*/
-  INIT_TIM2(freq);
+  //INIT_TIM2(freq);
 
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)

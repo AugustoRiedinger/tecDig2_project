@@ -1,6 +1,6 @@
 #ifndef _HARDWARE_H_
 #define _HARDWARE_H_
-/* - - - - HARDWARE - - - -*/
+
 /*Definicion de pines del LCD:*/
 LCD_2X16_t LCD_2X16[] = {
     /* Name  , PORT ,     PIN    ,         CLOCK       ,   Init    */
@@ -28,6 +28,5 @@ LCD_2X16_t LCD_2X16[] = {
 /*TX USART:*/
 #define _TX GPIOA
 #define _tx GPIO_Pin_2
-
 
 #endif // _HARDWARE_H_
