@@ -36,9 +36,6 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-      //if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
-          /*Se guarda lo recibido en la varibale Data:*/
-          //receivedCode[0] = USART_ReceiveData(USART2);
   }
 }
 
@@ -225,7 +222,11 @@ void SERVO_2(void){
   USART_SendData(USART2, servoCode2[0]);
 }
 
-void SD (void)
+void SD(void)
 {
+  /*Resetear flag switch:*/
+  switchSD = 0;
 
+  /*Iniciar la transmision:*/
+  USART_SendData(USART2, sdCode[0]);
 }

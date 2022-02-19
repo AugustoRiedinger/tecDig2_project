@@ -22,10 +22,12 @@ void SERVO_2(void);
 
 /*Funcion para enviar el codigo de pedido de temperatura:*/
 void TEMP_CODE(void);
+void SD(void);
 
 /*Codigos para acceder al SATDAC:*/
 char servoCode1[8] = "a";
 char servoCode2[8] = "b";
 char tempCode  [8] = "c";
+char sdCode    [8] = "d";
 
 #endif // _USART_H_

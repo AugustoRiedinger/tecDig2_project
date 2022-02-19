@@ -15,8 +15,8 @@
 #include "_lcd.h"
 /*Control de pulsadores - interrupciones externas:*/
 #include "_exti.h"
-
-char test[8] = "d";
+/*Control de la tarjeta SD:*/
+#include "_sd.h"
 
 /*----------------------------------------------------------------*/
 /*                           MAIN:                                */
@@ -26,24 +26,16 @@ int main(void){
 /* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
   /*Inicio del sistema:*/
   SystemInit();
-
   /*Inicializacion puertos USART:*/
   INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
-
   /*Inicializacion del servo como salida digital:*/
   INIT_DO(_Servo, _servo);
-
   /*Inicialización del TIM3 a 5 kHz:*/
   INIT_TIM3(freq);
-
-  /*Inicialización del ADC por DMA:*/
-  //INIT_ADC1DMA(tempDigValues, maxSampling);
-
-  /*Inicializacion TIM2:*/
-  //INIT_TIM2(freq);
-
   /*Inicializacion PC3 como ADC (LM35)*/
   INIT_ADC(_LM35, _lm35);
+  /*Inicializacion tarjeta SD:*/
+  UB_Fatfs_Init();
 
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
@@ -52,11 +44,10 @@ int main(void){
           /*Se guarda lo recibido en la varibale Data:*/
           receivedCode[0] = USART_ReceiveData(USART2);
 
-      USART_SendData(USART2, test[0]);
-
       if      (!strcmp(receivedCode, "a")) DE = 3;
       else if (!strcmp(receivedCode, "b")) DE = 10;
       else if (!strcmp(receivedCode, "c")) READ_TEMP();
+      else if (!strcmp(receivedCode, "d")) WRITE_SD();
 
       /*Reseteo de elementos:*/
       if (elements == 0)
@@ -107,4 +98,26 @@ void READ_TEMP()
   tempDig = READ_ADC(_LM35, _lm35);
 
   USART_SendData(USART2, tempDig);
+}
+
+void WRITE_SD()
+{
+  /*Verifica si hay una tarjeta insertada:*/
+  if(UB_Fatfs_CheckMedia(MMC_0)==FATFS_OK)
+  {
+    /*Verifica si se pueden almacenar datos en la tarjeta ingresada:*/
+    if(UB_Fatfs_Mount(MMC_0) == FATFS_OK)
+    {
+      /*Abre el archivo para escritura:*/
+      if(UB_Fatfs_OpenFile(&myFile, "texto.txt", F_WR_NEW) == FATFS_OK)
+      {
+        /*Escribe el archivo:*/
+        UB_Fatfs_WriteString(&myFile, fila1);
+        /*Cierra el archivo:*/
+        UB_Fatfs_CloseFile(&myFile);
+      }
+      /*Media unmount:*/
+      UB_Fatfs_UnMount(MMC_0);
+    }
+  }
 }
