@@ -14,7 +14,7 @@ uint32_t tempDig    = 0;
 uint32_t receiveTemp = 0;
 
 /*Variable para recibir el codigo transmitido por el SATDAC:*/
-char receivedCode[8];
+char receivedTemp[8];
 
 /*Funciones para enviar los codigos de mocion del servo:*/
 void SERVO_1(void);

@@ -8,6 +8,7 @@
 #include "_usart.h"
 #include "_exti.h"
 
+uint8_t i = 0;
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
 /*----------------------------------------------------------------*/
@@ -36,6 +37,10 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
+	  for(uint8_t i = 0; i < 3; i++)
+		  if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+			  /*Se guarda lo recibido en la varibale Data:*/
+			  receivedTemp[i] = USART_ReceiveData(USART2);
   }
 }
 
@@ -47,9 +52,7 @@ int main(void){
 void TIM3_IRQHandler(void) {
     if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
 
-        /*Buffer para mostrar el valor de temperatura:*/
-        char BuffTemp[buffLen];
-        char BuffTest[buffLen];
+        char buffTemp[8];
 
         /*Refresco LCD:*/
         CLEAR_LCD_2x16(LCD_2X16);
@@ -58,12 +61,12 @@ void TIM3_IRQHandler(void) {
         if(initialScreen == 1){
             /*Algoritmo para mostrar el mensaje:*/
             PRINT_LCD_2x16(LCD_2X16, 2, 0, "TD II-ERDYTC");
-            sprintf(BuffTemp, "%.1f", tempDeg);
             PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
-            PRINT_LCD_2x16(LCD_2X16, 7, 1, BuffTemp);
-
-            sprintf(BuffTest, "%c", receivedCode[0]);
-            PRINT_LCD_2x16(LCD_2X16, 0, 0, BuffTest);
+            for(uint8_t i = 0; i < 3; i++)
+            {
+            	sprintf(buffTemp, "%c", receivedTemp[i]);
+            	PRINT_LCD_2x16(LCD_2X16, 8+i, 1, buffTemp);
+            }
         }
 
         /*Pantalla actualizar temperatura - pulsador S1:*/
@@ -72,8 +75,8 @@ void TIM3_IRQHandler(void) {
             fiveSecDelay++;
 
             /*Algoritmo para mostrar el mensaje:*/
-            PRINT_LCD_2x16(LCD_2X16, 2, 0, "TEMPERATURA");
-            PRINT_LCD_2x16(LCD_2X16, 2, 1, "ACTUALIZADA");
+            PRINT_LCD_2x16(LCD_2X16, 2, 0, "ACTUALIZANDO");
+            PRINT_LCD_2x16(LCD_2X16, 2, 1, "TEMPERATURA");
 
             /*Pedir el valor de temperatura si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
@@ -190,10 +193,6 @@ void TEMP_CODE(void){
 
     /*Iniciar la transmision:*/
     USART_SendData(USART2, tempCode[0]);
-
-    if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
-      /*Se guarda lo recibido en la varibale Data:*/
-      receiveTemp = USART_ReceiveData(USART2);
 }
 
 void SERVO_1(void){

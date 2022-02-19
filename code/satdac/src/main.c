@@ -11,12 +11,11 @@
 #include "_adc.h"
 /*Control del servomotor:*/
 #include "_servo.h"
-/*Control del LCD:*/
-#include "_lcd.h"
-/*Control de pulsadores - interrupciones externas:*/
-#include "_exti.h"
 /*Control de la tarjeta SD:*/
 #include "_sd.h"
+
+char buffTemp[3] = "HOL";
+uint8_t i = 0;
 
 /*----------------------------------------------------------------*/
 /*                           MAIN:                                */
@@ -42,7 +41,7 @@ int main(void){
   {
       if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
           /*Se guarda lo recibido en la varibale Data:*/
-          receivedCode[0] = USART_ReceiveData(USART2);
+        receivedCode[0] = USART_ReceiveData(USART2);
 
       if      (!strcmp(receivedCode, "a")) DE = 3;
       else if (!strcmp(receivedCode, "b")) DE = 10;
@@ -51,7 +50,11 @@ int main(void){
 
       /*Reseteo de elementos:*/
       if (elements == 0)
-          elements = 100;
+        elements = 100;
+
+      /*Enviar temperatura:*/
+      for(uint8_t i = 0; i < 3; i++)
+    	  USART_SendData(USART2, buffTemp[i]);
   }
 }
 
@@ -97,7 +100,9 @@ void READ_TEMP()
   /*Almacenar el valor digital de temperatura:*/
   tempDig = READ_ADC(_LM35, _lm35);
 
-  USART_SendData(USART2, tempDig);
+  tempAna = (float) tempDig * 3.0 / 4095.0;
+
+  sprintf(buffTemp, "%.1f", tempAna);
 }
 
 void WRITE_SD()
@@ -109,7 +114,7 @@ void WRITE_SD()
     if(UB_Fatfs_Mount(MMC_0) == FATFS_OK)
     {
       /*Abre el archivo para escritura:*/
-      if(UB_Fatfs_OpenFile(&myFile, "texto.txt", F_WR_NEW) == FATFS_OK)
+      if(UB_Fatfs_OpenFile(&myFile, "sd.txt", F_WR_NEW) == FATFS_OK)
       {
         /*Escribe el archivo:*/
         UB_Fatfs_WriteString(&myFile, fila1);

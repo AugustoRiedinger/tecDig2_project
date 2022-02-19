@@ -10,7 +10,7 @@ float    tempAnaValues[maxSampling];
 /*Variable para almacenar el valor digital de temperatura:*/
 uint32_t tempDig = 0;
 /*Valor promedio de temperatura:*/
-float    tempAna = 0;
+float    tempAna = 0.0;
 
 /*Flag de que hay nuevos datos para procesar:*/
 uint8_t  f_newTempData = 0;
