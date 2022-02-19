@@ -1,4 +1,3 @@
-
 // ------------------------------------------------ --------------
 // File: main.c
 // Date: 06.04.2013 - 04-11-21
@@ -32,15 +31,14 @@
 //   PC11 -> SDIO_D3  = SD-Karte DAT3/CD  (pin 2 tarjeta)
 //   PC12 -> SDIO_CK  = SD-Karte Clock  (pin 6 tarjeta)
 //   PD2  -> SDIO_CMD = SD-Karte CMD    (pin 3 tarjeta)
-//										VDD pin 5
-//										GND pin 4 y 7
+//   VDD pin 5
+//   GND pin 4 y 7
 // mit Detect-Pin :
 //
 //   PC0  -> SD_Detect-Pin (Hi=ohne SD-Karte)
 // ------------------------------------------------ --------------
 
 // Configurar en File     : stm32_ub_sdcard.h el modo y si usamos pin deteccción tarjeta
-
 
 #include "main.h"
 #include "stm32_ub_fatfs.h"
@@ -74,24 +72,23 @@ int main(void)
 
 void Escribir_SD()
 {
-	if(UB_Fatfs_CheckMedia(MMC_0)==FATFS_OK)  // Verifica si hay una tarjeta insertada
-	{
-		if(UB_Fatfs_Mount(MMC_0) == FATFS_OK) // Verifica si se pueden almacenar datos en la tarjeta ingresada
-		{
-			if(UB_Fatfs_OpenFile(&myFile, "texto.txt", F_WR_NEW) == FATFS_OK) // Abre el archivo para escritura
-			{
-				UB_Fatfs_WriteString(&myFile, fila1); // Escribe el archivo
+  if(UB_Fatfs_CheckMedia(MMC_0)==FATFS_OK)  // Verifica si hay una tarjeta insertada
+  {
+    if(UB_Fatfs_Mount(MMC_0) == FATFS_OK) // Verifica si se pueden almacenar datos en la tarjeta ingresada
+    {
+      if(UB_Fatfs_OpenFile(&myFile, "texto.txt", F_WR_NEW) == FATFS_OK) // Abre el archivo para escritura
+      {
+        UB_Fatfs_WriteString(&myFile, fila1); // Escribe el archivo
 
-				UB_Fatfs_CloseFile(&myFile); // Cierra el archivo
-			}
-		  // Media unmount
-		  UB_Fatfs_UnMount(MMC_0);
-		}
-	}
+        UB_Fatfs_CloseFile(&myFile); // Cierra el archivo
+      }
+      // Media unmount
+      UB_Fatfs_UnMount(MMC_0);
+    }
+  }
 
-	else // No se detecto ninguna tarjeta SD
-	{
-	  UB_LCD_2x16_String(0,0, "INSERTE SD CARD");
-	}
-
+  else // No se detecto ninguna tarjeta SD
+  {
+    UB_LCD_2x16_String(0,0, "INSERTE SD CARD");
+  }
 }

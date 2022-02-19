@@ -8,9 +8,6 @@
 #include "_usart.h"
 #include "_exti.h"
 
-char receivedCode[8];
-uint8_t i = 0;
-
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
 /*----------------------------------------------------------------*/
@@ -39,9 +36,9 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-      if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+      //if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
           /*Se guarda lo recibido en la varibale Data:*/
-          receivedCode[0] = USART_ReceiveData(USART2);
+          //receivedCode[0] = USART_ReceiveData(USART2);
   }
 }
 
@@ -83,11 +80,11 @@ void TIM3_IRQHandler(void) {
 
             /*Pedir el valor de temperatura si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
-                SEND_TEMP();
+                TEMP_CODE();
         }
 
         /*Pantalla SD - pulsador S2:*/
-        else if(switchSD == 1 && fiveSecDelay <= 20){
+        else if(switchServo1 == 1 && fiveSecDelay <= 20){
             /*Aumentar el contador de los 5 seg:*/
             fiveSecDelay++;
 
@@ -97,11 +94,11 @@ void TIM3_IRQHandler(void) {
 
             /*Guardar datos en SD si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
-                SD();
+                SERVO_1();
         }
 
         /*Pantalla mover servo - pulsador S3:*/
-        else if(switchServo == 1 && fiveSecDelay <= 20){
+        else if(switchServo2 == 1 && fiveSecDelay <= 20){
             /*Aumentar el contador de los 5 seg:*/
             fiveSecDelay++;
 
@@ -111,11 +108,11 @@ void TIM3_IRQHandler(void) {
 
             /*Enviar comando servo si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
-                SERVO();
+                SERVO_2();
         }
 
         /*Pantalla menu - pulsador S4:*/
-        else if(switchMenu == 1 && fiveSecDelay <= 20){
+        else if(switchSD == 1 && fiveSecDelay <= 20){
             /*Aumentar el contador de los 5 seg:*/
             fiveSecDelay++;
 
@@ -124,6 +121,10 @@ void TIM3_IRQHandler(void) {
             PRINT_LCD_2x16(LCD_2X16, 9, 0, "3_Servo");
             PRINT_LCD_2x16(LCD_2X16, 0, 1, "2_SD");
             PRINT_LCD_2x16(LCD_2X16, 9, 1, "4_Volver");
+
+            /*Enviar comando servo si pasaron 5 segundos:*/
+            if (fiveSecDelay == 20)
+                SD();
         }
 
         /*Reseteo variables:*/
@@ -133,16 +134,16 @@ void TIM3_IRQHandler(void) {
         }
 
         /*Se apaga F1 para medir a continuacion S3 y S4 mediante F2:*/
-        if (i == 0)
+        if (activeSwitch == 0)
         {
           GPIO_ResetBits(_F1, _f1);
           GPIO_SetBits(_F2, _f2);
-          i = 1;
+          activeSwitch = 1;
         }
         else {
           GPIO_ResetBits(_F2, _f2);
           GPIO_SetBits(_F1, _f1);
-          i = 0;
+          activeSwitch = 0;
         }
 
         /*Rehabilitacion del timer:*/
@@ -158,7 +159,7 @@ void EXTI9_5_IRQHandler(void)
       /*Si ademas de estar C1 en 1 tambien esta F1 en 1, entonces el switch pulsado es S1:*/
       if(GPIO_ReadInputDataBit(_F1, _f1))       switchTemp = 1;
       /*Si ademas de estar C1 en 1 tambien esta F2 en 1, entonces el switch pulsado es S2:*/
-      else if(GPIO_ReadInputDataBit(_F2, _f2))  switchSD = 1;
+      else if(GPIO_ReadInputDataBit(_F2, _f2))  switchServo1 = 1;
 
 
       /*Clear the EXTI line 6 pending bit:*/
@@ -168,9 +169,9 @@ void EXTI9_5_IRQHandler(void)
   /*Si la interrupcion fue por linea 8 (PC8 - C2):*/
   else if(EXTI_GetITStatus(EXTI_Line8) != RESET){
       /*Si ademas de estar C2 en 1 tambien esta F1 en 1, entonces el switch pulsado es S3:*/
-      if (GPIO_ReadInputDataBit(_F1, _f1))      switchServo = 1;
+      if (GPIO_ReadInputDataBit(_F1, _f1))      switchServo2 = 1;
       /*Si ademas de estar C2 en 1 tambien esta F2 en 1, entonces el switch pulsado es S4:*/
-      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchMenu = 1;
+      else if (GPIO_ReadInputDataBit(_F2, _f2)) switchSD = 1;
 
       /*Clear the EXTI line 8 pending bit:*/
       EXTI_ClearITPendingBit(EXTI_Line8);
@@ -183,8 +184,7 @@ void EXTI9_5_IRQHandler(void)
 /*----------------------------------------------------------------*/
 /*FUNCIONES LOCALES:                                              */
 /*----------------------------------------------------------------*/
-void SEND_TEMP(void){
-
+void TEMP_CODE(void){
     /*Resetear flag del switch:*/
     switchTemp = 0;
 
@@ -192,39 +192,40 @@ void SEND_TEMP(void){
 //    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
 //    {}
 
-    char tempCode[8] = "t";
-
     /*Iniciar la transmision:*/
     USART_SendData(USART2, tempCode[0]);
 
+    if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+      /*Se guarda lo recibido en la varibale Data:*/
+      receiveTemp = USART_ReceiveData(USART2);
 }
 
-
-void SERVO(void){
+void SERVO_1(void){
 
     /*Resetear flag switch:*/
-    switchServo = 0;
+    switchServo1 = 0;
 
     /*Clarear el flag de estado para transmitir:*/
 //    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
 //    {}
 
-    char servoCode[8] = "a";
-
     /*Iniciar la transmision:*/
-    USART_SendData(USART2, servoCode[0]);
+    USART_SendData(USART2, servoCode1[0]);
+
 }
 
 /* * * * * * * * * * * * * SD * * * * * * * * * * * * */
 
-void SD(void){
+void SERVO_2(void){
 
   /*Resetear flag switch:*/
-  switchSD = 0;
-
-  char servoCode2[8] = "b";
+  switchServo2 = 0;
 
   /*Iniciar la transmision:*/
   USART_SendData(USART2, servoCode2[0]);
+}
+
+void SD (void)
+{
 
 }

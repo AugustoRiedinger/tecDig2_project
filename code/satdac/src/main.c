@@ -19,7 +19,7 @@
 char test[8] = "d";
 
 /*----------------------------------------------------------------*/
-/*MAIN:                                                           */
+/*                           MAIN:                                */
 /*----------------------------------------------------------------*/
 int main(void){
 
@@ -42,6 +42,9 @@ int main(void){
   /*Inicializacion TIM2:*/
   //INIT_TIM2(freq);
 
+  /*Inicializacion PC3 como ADC (LM35)*/
+  INIT_ADC(_LM35, _lm35);
+
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
@@ -53,7 +56,7 @@ int main(void){
 
       if      (!strcmp(receivedCode, "a")) DE = 3;
       else if (!strcmp(receivedCode, "b")) DE = 10;
-      else if (!strcmp(receivedCode, "c")) DMA_Cmd(DMA2_Stream0, ENABLE);
+      else if (!strcmp(receivedCode, "c")) READ_TEMP();
 
       /*Reseteo de elementos:*/
       if (elements == 0)
@@ -98,14 +101,10 @@ void DMA2_Stream0_IRQHandler(void)
 /*----------------------------------------------------------------*/
 /*                    FUNCIONES LOCALES:                          */
 /*----------------------------------------------------------------*/
-/*Procesamiento de datos del ADC:*/
-void PROCESS_ADC_DATA()
+void READ_TEMP()
 {
-  for(uint8_t i = 0; i < maxSampling; i++)
-    tempAnaValues[i] = tempDigValues[i] * 3.0 / 4095.0;
+  /*Almacenar el valor digital de temperatura:*/
+  tempDig = READ_ADC(_LM35, _lm35);
 
-  for(uint8_t i = 0; i < maxSampling; i++)
-    tempAvg = tempAvg + tempAnaValues[i];
-
-  //tempAvg = tempAvg / maxSampling;
+  USART_SendData(USART2, tempDig);
 }

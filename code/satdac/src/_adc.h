@@ -7,6 +7,8 @@
 uint16_t tempDigValues[maxSampling];
 float    tempAnaValues[maxSampling];
 
+/*Variable para almacenar el valor digital de temperatura:*/
+uint32_t tempDig = 0;
 /*Valor promedio de temperatura:*/
 float    tempAvg = 0;
 
@@ -14,6 +16,6 @@ float    tempAvg = 0;
 uint8_t  f_newTempData = 0;
 
 /*Funcion para procesar los datos del ADC:*/
-void PROCESS_ADC_DATA(void);
+void READ_TEMP(void);
 
 #endif // _ADC_H_

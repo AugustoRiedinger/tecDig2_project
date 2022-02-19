@@ -3,21 +3,18 @@
 
 /* - - - -   EXTI   - - - -*/
 /*Switch temperatura:*/
-uint8_t switchTemp  = 0;
+uint8_t switchTemp   = 0;
 
 /*Switch SD:*/
-uint8_t switchSD    = 0;
+uint8_t switchServo1 = 0;
 
 /*Switch servo:*/
-uint8_t switchServo = 0;
+uint8_t switchServo2 = 0;
 
 /*Switch extra:*/
-uint8_t switchMenu = 0;
+uint8_t switchSD     = 0;
 
-/*Funciones de accion de los pulsadores:*/
-void RECEIVE_TEMP();
-void SEND_TEMP();
-void SERVO(void);
-void SD(void);
+/*Control de switch activo:*/
+uint8_t activeSwitch = 0;
 
 #endif // _EXTI_H_

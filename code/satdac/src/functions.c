@@ -44,47 +44,22 @@ void INIT_DO(GPIO_TypeDef *Port, uint32_t Pin) {
   GPIO_Init(Port, &GPIO_InitStructure);
 }
 
-/*****************************************************************************
-INIT_ADC
-
-        * @author	Catedra UTN-BHI TDII / A. Riedinger.
-        * @brief	Inicializa una entrada analogica como ADC.
-        * @returns	void
-        * @param
-                - Port		Puerto del ADC a inicializar. Ej: GPIOX.
-                - Pin		Pin del ADC a inicializar. Ej: GPIO_Pin_X
-        * @ej
-                - INIT_ADC(GPIOX, GPIO_Pin_X);
-******************************************************************************/
 void INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize)
 {
-  /*Habilitacion del clock de los perficos del DMA y el ADC1::*/
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
-  /*Inicio configuracion DMA2:*/
   DMA_DeInit(DMA2_Stream0);
-  /*Se elige DMA canal 0 para trabajar con ADC1:*/
   DMA_InitStructure.DMA_Channel = DMA_Channel_0;
-  /*Registro donde se guardan los valores convertidos:*/
   DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;
-  /*Direccion del arreglo donde se guardan los valores leidos:*/
   DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) adcArray;
-  /*Establecer que el DMA transmitira a memoria:*/
   DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-  /*Establecer la cantidad de valores a convertir:*/
   DMA_InitStructure.DMA_BufferSize = bufferSize;
-  /*Se deshabilita el incremento de memoria por periferico:*/
   DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-  /*Se habilita el incremento de memoria para crear un arreglo dinamico:*/
   DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-  /*Ancho de bit del dato:*/
   DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-  /*Ancho de cada elemento del arreglo:*/
   DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-  /*Modo circuilar, cuando llega al final del arreglo vuelve a arrancar desde el primer valor:*/
   DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-  /*Maxima prioridad al DMA:*/
   DMA_InitStructure.DMA_Priority = DMA_Priority_High;
   DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
   DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
@@ -92,7 +67,6 @@ void INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize)
   DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
   DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 
-  /*Configuracion del handler para la interrupcion:*/
   NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
@@ -101,54 +75,111 @@ void INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize)
 
   DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
 
-  /*Habilitacion del DMA:*/
   DMA_Cmd(DMA2_Stream0, ENABLE);
 
-  /*Inicio configuracion del ADC1:*/
   ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
   ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
-  /*Se habilita el acceso del DMA:*/
   ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
   ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 
-  /*Cargar la configuracion:*/
   ADC_CommonInit(&ADC_CommonInitStructure);
 
-  /*Resolucion del ADC en 12 bits:*/
   ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-  /*Habilita la conversion de varios canales simultaneamente:*/
   ADC_InitStructure.ADC_ScanConvMode = ENABLE;
-  /*Se deshabilita el modo continuo, ya que el ADC se va a activar por el TIM3:*/
   ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
-  /*Disparo por flanco ascendente:*/
   ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
-  /*Define el TMRGO del TIM3 como disparo del ADC:*/
   ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-  /*Cantidad de datos que se van a convertir por disparo del ADC (tension y corriente):*/
   ADC_InitStructure.ADC_NbrOfConversion = 1;
 
-  /*Inicializacion del ADC con los parametros establecidos:*/
   ADC_Init(ADC1, &ADC_InitStructure);
 
-  /*Configuracion de los canales del ADC:*/
-  /*Canal 13 ADC1 (PC13) con orden 2 para conversion de corriente:*/
   ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 1, ADC_SampleTime_480Cycles);
-  /*Habilitacion del pedido del DMA en el ADC1:*/
   ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
   ADC_DMACmd(ADC1, ENABLE);
 
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-  /* PC1 para entrada analógica */
   GPIO_StructInit(&GPIO_InitStructure);
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-  /*Habilitacion del ADC1:*/
   ADC_Cmd(ADC1, ENABLE);
+}
+
+void INIT_ADC(GPIO_TypeDef* Port, uint16_t Pin)
+{
+  uint32_t Clock;
+  Clock = FIND_CLOCK(Port);
+
+  ADC_TypeDef* ADCX;
+  ADCX = FIND_ADC_TYPE(Port, Pin);
+
+  uint32_t RCC_APB;
+  RCC_APB = FIND_RCC_APB(ADCX);
+
+  uint8_t Channel;
+  Channel = FIND_CHANNEL(Port, Pin);
+
+  GPIO_InitTypeDef        GPIO_InitStructure;
+  ADC_InitTypeDef         ADC_InitStructure;
+  ADC_CommonInitTypeDef   ADC_CommonInitStructure;
+
+  //Habilitacion del Clock para el puerto donde esta conectado el ADC:
+  RCC_AHB1PeriphClockCmd(Clock, ENABLE);
+
+  //Configuracion del PIN del ADC como entrada ANALOGICA.
+  GPIO_StructInit(&GPIO_InitStructure);
+  GPIO_InitStructure.GPIO_Pin     = Pin;
+  GPIO_InitStructure.GPIO_Mode    = GPIO_Mode_AN;
+  GPIO_InitStructure.GPIO_PuPd    = GPIO_PuPd_NOPULL ;
+  GPIO_Init(Port, &GPIO_InitStructure);
+
+  //Activar ADC:
+  RCC_APB2PeriphClockCmd(RCC_APB, ENABLE);
+
+  //ADC Common Init:
+  ADC_CommonStructInit(&ADC_CommonInitStructure);
+  ADC_CommonInitStructure.ADC_Mode                = ADC_Mode_Independent;
+  ADC_CommonInitStructure.ADC_Prescaler           = ADC_Prescaler_Div4; // max 36 MHz segun datasheet
+  ADC_CommonInitStructure.ADC_DMAAccessMode       = ADC_DMAAccessMode_Disabled;
+  ADC_CommonInitStructure.ADC_TwoSamplingDelay    = ADC_TwoSamplingDelay_5Cycles;
+  ADC_CommonInit(&ADC_CommonInitStructure);
+
+  //ADC Init:
+  ADC_StructInit (&ADC_InitStructure);
+  ADC_InitStructure.ADC_Resolution             = ADC_Resolution_12b;
+  ADC_InitStructure.ADC_ScanConvMode           = DISABLE;
+  ADC_InitStructure.ADC_ContinuousConvMode     = DISABLE;
+  ADC_InitStructure.ADC_ExternalTrigConvEdge   = ADC_ExternalTrigConvEdge_None;
+  ADC_InitStructure.ADC_DataAlign              = ADC_DataAlign_Right;
+  ADC_InitStructure.ADC_NbrOfConversion        = 1;
+  ADC_Init(ADCX, &ADC_InitStructure);
+
+  //Establecer la configuración de conversion:
+  ADC_InjectedSequencerLengthConfig(ADCX, 1);
+  ADC_SetInjectedOffset(ADCX, ADC_InjectedChannel_1, 0);
+  ADC_InjectedChannelConfig(ADCX, Channel, 1, ADC_SampleTime_480Cycles);
+
+  /* Poner en marcha ADC ----------------------------------------------------*/
+  ADC_Cmd(ADCX, ENABLE);
+}
+
+int32_t READ_ADC(GPIO_TypeDef* Port, uint16_t Pin)
+{
+  uint32_t ADC_DATA;
+
+  ADC_TypeDef* ADCX;
+  ADCX = FIND_ADC_TYPE(Port, Pin);
+
+  ADC_ClearFlag(ADCX, ADC_FLAG_JEOC);
+  ADC_SoftwareStartInjectedConv(ADCX);
+  while (ADC_GetFlagStatus(ADCX, ADC_FLAG_JEOC) == RESET);
+
+  ADC_DATA = ADC_GetInjectedConversionValue(ADCX, ADC_InjectedChannel_1);
+  return ADC_DATA;
 }
 
 /*****************************************************************************
@@ -307,4 +338,62 @@ uint8_t FIND_PINSOURCE(uint32_t Pin)
     else if(Pin == GPIO_Pin_15) return GPIO_PinSource15;
     else
          return 0;
+}
+
+//ADC:
+ADC_TypeDef* FIND_ADC_TYPE (GPIO_TypeDef* Port, uint32_t Pin)
+{
+	ADC_TypeDef* ADCX;
+
+	if 		((Port == GPIOA && (Pin == GPIO_Pin_0 || Pin == GPIO_Pin_1   || Pin == GPIO_Pin_2 ||
+								Pin == GPIO_Pin_3 || Pin == GPIO_Pin_4   || Pin == GPIO_Pin_5 ||
+								Pin == GPIO_Pin_6 || Pin == GPIO_Pin_7)) ||
+
+			 (Port == GPIOB && (Pin == GPIO_Pin_0 || Pin == GPIO_Pin_1)) ||
+
+			 (Port == GPIOC && (Pin == GPIO_Pin_0 || Pin == GPIO_Pin_1   || Pin == GPIO_Pin_2 ||
+					  	  	  	Pin == GPIO_Pin_3 || Pin == GPIO_Pin_4   || Pin == GPIO_Pin_5)))
+		ADCX = ADC1;
+
+	else if ((Port == GPIOF && (Pin == GPIO_Pin_3 || Pin == GPIO_Pin_4   || Pin == GPIO_Pin_5 ||
+								Pin == GPIO_Pin_6 || Pin == GPIO_Pin_7   || Pin == GPIO_Pin_8 ||
+								Pin == GPIO_Pin_9 || Pin == GPIO_Pin_10)))
+		ADCX = ADC3;
+
+	else
+		ADCX = NULL;
+
+	return ADCX;
+}
+
+uint32_t FIND_RCC_APB(ADC_TypeDef* ADCX)
+{
+	uint32_t RCC_APB;
+
+	if 		(ADCX == ADC1) RCC_APB = RCC_APB2Periph_ADC1;
+	else if (ADCX == ADC3) RCC_APB = RCC_APB2Periph_ADC3;
+	else 				   RCC_APB = 0;
+
+	return RCC_APB;
+}
+
+uint8_t FIND_CHANNEL(GPIO_TypeDef* Port, uint32_t Pin)
+{
+	uint8_t Channel;
+
+	if 		(Port == GPIOA && Pin == GPIO_Pin_0)  Channel = ADC_Channel_0;  else if (Port == GPIOA && Pin == GPIO_Pin_1)  Channel = ADC_Channel_1;
+	else if (Port == GPIOA && Pin == GPIO_Pin_2)  Channel = ADC_Channel_2;  else if (Port == GPIOA && Pin == GPIO_Pin_3)  Channel = ADC_Channel_3;
+	else if (Port == GPIOA && Pin == GPIO_Pin_4)  Channel = ADC_Channel_4;  else if (Port == GPIOA && Pin == GPIO_Pin_5)  Channel = ADC_Channel_5;
+	else if (Port == GPIOA && Pin == GPIO_Pin_6)  Channel = ADC_Channel_6;  else if (Port == GPIOA && Pin == GPIO_Pin_7)  Channel = ADC_Channel_7;
+	else if (Port == GPIOB && Pin == GPIO_Pin_0)  Channel = ADC_Channel_8;  else if (Port == GPIOB && Pin == GPIO_Pin_1)  Channel = ADC_Channel_9;
+	else if (Port == GPIOC && Pin == GPIO_Pin_0)  Channel = ADC_Channel_10; else if (Port == GPIOC && Pin == GPIO_Pin_1)  Channel = ADC_Channel_11;
+	else if (Port == GPIOC && Pin == GPIO_Pin_2)  Channel = ADC_Channel_12; else if (Port == GPIOC && Pin == GPIO_Pin_3)  Channel = ADC_Channel_13;
+	else if (Port == GPIOC && Pin == GPIO_Pin_4)  Channel = ADC_Channel_14;	else if (Port == GPIOC && Pin == GPIO_Pin_5)  Channel = ADC_Channel_15;
+	else if (Port == GPIOF && Pin == GPIO_Pin_3)  Channel = ADC_Channel_9;	else if (Port == GPIOF && Pin == GPIO_Pin_4)  Channel = ADC_Channel_14;
+	else if (Port == GPIOF && Pin == GPIO_Pin_5)  Channel = ADC_Channel_15;	else if (Port == GPIOF && Pin == GPIO_Pin_6)  Channel = ADC_Channel_4;
+	else if (Port == GPIOF && Pin == GPIO_Pin_7)  Channel = ADC_Channel_5;	else if (Port == GPIOF && Pin == GPIO_Pin_8)  Channel = ADC_Channel_6;
+	else if (Port == GPIOF && Pin == GPIO_Pin_9)  Channel = ADC_Channel_7;	else if (Port == GPIOF && Pin == GPIO_Pin_10) Channel = ADC_Channel_8;
+	else 										  Channel = 0;
+
+	return Channel;
 }

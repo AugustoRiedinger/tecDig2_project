@@ -45,6 +45,8 @@ void INIT_ADC1DMA(uint16_t* adcArray, uint32_t bufferSize);
 void INIT_TIM3(uint32_t Freq);
 void INIT_TIM2(uint32_t Freq);
 void INIT_USART_RX_TX(GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, uint32_t);
+void INIT_ADC(GPIO_TypeDef* Port, uint16_t Pin);
+int32_t READ_ADC(GPIO_TypeDef* Port, uint16_t Pin);
 
 /*Cierre del header:*/
 #endif
