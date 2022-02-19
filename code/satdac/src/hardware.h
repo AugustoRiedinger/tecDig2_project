@@ -4,9 +4,9 @@
 /* * * * * * * * * * * * * CONSTANTES * * * * * * * * * * * * */
 /* - - - - HARDWARE - - - -*/
 /*Servomotor:*/
-#define _Servo     GPIOC
-#define _servo     GPIO_Pin_0
-#define __servo    GPIO_PinSource0
+#define _Servo     GPIOD
+#define _servo     GPIO_Pin_1
+#define __servo    GPIO_PinSource1
 
 /*Sensor temperatura:*/
 #define _LM35   GPIOC

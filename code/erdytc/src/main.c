@@ -86,12 +86,12 @@ void TIM3_IRQHandler(void) {
             fiveSecDelay++;
 
             /*Algoritmo para mostrar el mensaje:*/
-            PRINT_LCD_2x16(LCD_2X16, 1, 0, "DATOS GUARDADOS");
-            PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+            PRINT_LCD_2x16(LCD_2X16, 1, 0, "SERVO POSICION");
+            PRINT_LCD_2x16(LCD_2X16, 8, 1, "2");
 
             /*Guardar datos en SD si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
-                SERVO_1();
+                SERVO_2();
         }
 
         /*Pantalla mover servo - pulsador S3:*/
@@ -100,12 +100,12 @@ void TIM3_IRQHandler(void) {
             fiveSecDelay++;
 
             /*Algoritmo para mostrar el mensaje:*/
-            PRINT_LCD_2x16(LCD_2X16, 0, 0, "ANTENA DESPLEGA");
-            PRINT_LCD_2x16(LCD_2X16, 2, 1, "CORRECTAMENTE");
+            PRINT_LCD_2x16(LCD_2X16, 1, 0, "SERVO POSICION");
+            PRINT_LCD_2x16(LCD_2X16, 8, 1, "1");
 
             /*Enviar comando servo si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
-                SERVO_2();
+                SERVO_1();
         }
 
         /*Pantalla menu - pulsador S4:*/
@@ -114,10 +114,9 @@ void TIM3_IRQHandler(void) {
             fiveSecDelay++;
 
             /*Algoritmo para mostrar el mensaje:*/
-            PRINT_LCD_2x16(LCD_2X16, 0, 0, "1_Temp.");
-            PRINT_LCD_2x16(LCD_2X16, 9, 0, "3_Servo");
-            PRINT_LCD_2x16(LCD_2X16, 0, 1, "2_SD");
-            PRINT_LCD_2x16(LCD_2X16, 9, 1, "4_Volver");
+            PRINT_LCD_2x16(LCD_2X16, 1, 0, "DATOS GUARDADOS");
+            PRINT_LCD_2x16(LCD_2X16, 5, 1, "EN SD");
+
 
             /*Enviar comando servo si pasaron 5 segundos:*/
             if (fiveSecDelay == 20)
