@@ -2,7 +2,7 @@
 #define _USART_H_
 
 /*Baud Rate:*/
-#define baudRate 9600
+#define baudRate 50
 
 /*Recepción de caracteres:*/
 char receivedCode[8];

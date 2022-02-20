@@ -8,7 +8,15 @@
 #include "_usart.h"
 #include "_exti.h"
 
-uint8_t i = 0;
+char temp1[8];
+char temp2[8];
+char temp3[8];
+
+uint8_t d = 0;
+uint8_t delay = 0;
+uint8_t flagTemp2 = 0;
+uint8_t flagTemp3 = 0;
+
 /*----------------------------------------------------------------*/
 /*MAIN:                                                           */
 /*----------------------------------------------------------------*/
@@ -37,10 +45,12 @@ int main(void){
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
   {
-	  for(uint8_t i = 0; i < 3; i++)
-		  if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
-			  /*Se guarda lo recibido en la varibale Data:*/
-			  receivedTemp[i] = USART_ReceiveData(USART2);
+		if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+			/*Se guarda lo recibido en la varibale Data:*/
+			temp1[0] = USART_ReceiveData(USART2);
+
+		if (flagTemp2 == 1) TEMP_CODE2();
+		else if (flagTemp3 == 1) TEMP_CODE3();
   }
 }
 
@@ -52,7 +62,9 @@ int main(void){
 void TIM3_IRQHandler(void) {
     if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
 
-        char buffTemp[8];
+        char buffTemp1[8];
+        char buffTemp2[8];
+        char buffTemp3[8];
 
         /*Refresco LCD:*/
         CLEAR_LCD_2x16(LCD_2X16);
@@ -62,11 +74,13 @@ void TIM3_IRQHandler(void) {
             /*Algoritmo para mostrar el mensaje:*/
             PRINT_LCD_2x16(LCD_2X16, 2, 0, "TD II-ERDYTC");
             PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
-            for(uint8_t i = 0; i < 3; i++)
-            {
-            	sprintf(buffTemp, "%c", receivedTemp[i]);
-            	PRINT_LCD_2x16(LCD_2X16, 8+i, 1, buffTemp);
-            }
+
+            sprintf(buffTemp1, "%c", temp1[0]);
+            PRINT_LCD_2x16(LCD_2X16, 8, 1, buffTemp1);
+            sprintf(buffTemp2, "%c", temp2[0]);
+			PRINT_LCD_2x16(LCD_2X16, 9, 1, buffTemp2);
+			sprintf(buffTemp3, "%c", temp3[0]);
+			PRINT_LCD_2x16(LCD_2X16, 10, 1, buffTemp3);
         }
 
         /*Pantalla actualizar temperatura - pulsador S1:*/
@@ -187,32 +201,42 @@ void TEMP_CODE(void){
     /*Resetear flag del switch:*/
     switchTemp = 0;
 
-//    /*Clarear el flag de estado para transmitir:*/
-//    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-//    {}
-
     /*Iniciar la transmision:*/
     USART_SendData(USART2, tempCode[0]);
+
+    flagTemp2 = 1;
+}
+
+void TEMP_CODE2(void){
+    /*Iniciar la transmision:*/
+    USART_SendData(USART2, tempCode2[0]);
+
+    if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+		/*Se guarda lo recibido en la varibale Data:*/
+		temp2[0] = USART_ReceiveData(USART2);
+
+    flagTemp3 = 1;
+}
+
+void TEMP_CODE3(void){
+    /*Iniciar la transmision:*/
+    USART_SendData(USART2, tempCode3[0]);
+
+    if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
+		/*Se guarda lo recibido en la varibale Data:*/
+		temp3[0] = USART_ReceiveData(USART2);
 }
 
 void SERVO_1(void){
-
     /*Resetear flag switch:*/
     switchServo1 = 0;
-
-    /*Clarear el flag de estado para transmitir:*/
-//    while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-//    {}
 
     /*Iniciar la transmision:*/
     USART_SendData(USART2, servoCode1[0]);
 
 }
 
-/* * * * * * * * * * * * * SD * * * * * * * * * * * * */
-
 void SERVO_2(void){
-
   /*Resetear flag switch:*/
   switchServo2 = 0;
 
@@ -220,8 +244,7 @@ void SERVO_2(void){
   USART_SendData(USART2, servoCode2[0]);
 }
 
-void SD(void)
-{
+void SD(void){
   /*Resetear flag switch:*/
   switchSD = 0;
 

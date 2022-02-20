@@ -13,8 +13,15 @@
 #include "_servo.h"
 /*Control de la tarjeta SD:*/
 #include "_sd.h"
+char buffTemp[8];
+char buffTemp1[1] = "H";
+char buffTemp2[1] = "O";
+char buffTemp3[1] = "L";
+char test1[1] = "1";
+char test2[1] = "2";
+char test3[1] = "3";
 
-char buffTemp[3] = "HOL";
+
 uint8_t i = 0;
 
 /*----------------------------------------------------------------*/
@@ -47,14 +54,15 @@ int main(void){
       else if (!strcmp(receivedCode, "b")) DE = 10;
       else if (!strcmp(receivedCode, "c")) READ_TEMP();
       else if (!strcmp(receivedCode, "d")) WRITE_SD();
+      else if (!strcmp(receivedCode, "e")) USART_SendData(USART2, buffTemp[1]);
+      else if (!strcmp(receivedCode, "f")) USART_SendData(USART2, buffTemp[2]);
+
+      //WRITE_SD();
 
       /*Reseteo de elementos:*/
       if (elements == 0)
         elements = 100;
 
-      /*Enviar temperatura:*/
-      for(uint8_t i = 0; i < 3; i++)
-    	  USART_SendData(USART2, buffTemp[i]);
   }
 }
 
@@ -100,9 +108,48 @@ void READ_TEMP()
   /*Almacenar el valor digital de temperatura:*/
   tempDig = READ_ADC(_LM35, _lm35);
 
-  tempAna = (float) tempDig * 3.0 / 4095.0;
+  tempAna = (float) tempDig * 3.0 / 5.0;
 
   sprintf(buffTemp, "%.1f", tempAna);
+  USART_SendData(USART2, buffTemp[0]);
+
+//  USART_SendData(USART2, buffTemp2[0]);
+
+//  if(i == 0)
+//	  USART_SendData(USART2, buffTemp1[0]);
+//  else if(i == 1)
+//	  USART_SendData(USART2, buffTemp2[0]);
+//  else if(i == 2)
+//	  USART_SendData(USART2, buffTemp3[0]);
+//  else
+//	  i = 0;
+//
+//  i++;
+
+
+//  USART_SendData(USART2, test1[0]);
+//  USART_SendData(USART2, buffTemp1[0]);
+//  USART_SendData(USART2, test2[0]);
+//  USART_SendData(USART2, buffTemp2[0]);
+//  USART_SendData(USART2, test3[0]);
+//  USART_SendData(USART2, buffTemp3[0]);
+
+
+//  if (i < 3)
+//  {
+//	  USART_SendData(USART2, buffTemp[i]);
+//	  i++;
+//  }
+//  else
+//	  i = 0;
+
+//  USART_SendData(USART2, buffTemp[1]);
+//  USART_SendData(USART2, buffTemp[2]);
+//  USART_SendData(USART2, buffTemp[0]);
+
+  /*Enviar temperatura:*/
+//  for(uint8_t i = 0; i <= 2; i++)
+//    USART_SendData(USART2, buffTemp[i]);
 }
 
 void WRITE_SD()
@@ -125,4 +172,9 @@ void WRITE_SD()
       UB_Fatfs_UnMount(MMC_0);
     }
   }
+}
+
+void DELAY(volatile uint32_t n)
+{
+  while(n--) {};
 }

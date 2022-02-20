@@ -50,7 +50,7 @@
 // Detect-Pin der SD-Karte
 //--------------------------------------------------------------
 #if USE_DETECT_PIN==1
-  #define SD_DETECT_PIN                    GPIO_Pin_0
+  #define SD_DETECT_PIN                    GPIO_Pin_3
   #define SD_DETECT_GPIO_PORT              GPIOC
   #define SD_DETECT_GPIO_CLK               RCC_AHB1Periph_GPIOC
 #endif

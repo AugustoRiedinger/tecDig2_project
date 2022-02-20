@@ -2,7 +2,7 @@
 #define _USART_H_
 /* - - - -   USART   - - - -*/
 /*Baud Rate USART:*/
-#define baudRate    9600
+#define baudRate    50
 
 /*Temperatura en grados:*/
 float tempDeg       = 0;
@@ -22,6 +22,9 @@ void SERVO_2(void);
 
 /*Funcion para enviar el codigo de pedido de temperatura:*/
 void TEMP_CODE(void);
+void TEMP_CODE2(void);
+void TEMP_CODE3(void);
+
 void SD(void);
 
 /*Codigos para acceder al SATDAC:*/
@@ -29,5 +32,8 @@ char servoCode1[8] = "a";
 char servoCode2[8] = "b";
 char tempCode  [8] = "c";
 char sdCode    [8] = "d";
+char tempCode2 [8] = "e";
+char tempCode3 [8] = "f";
+
 
 #endif // _USART_H_
