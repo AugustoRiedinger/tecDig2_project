@@ -48,9 +48,6 @@ int main(void){
 		if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
 			/*Se guarda lo recibido en la varibale Data:*/
 			temp1[0] = USART_ReceiveData(USART2);
-
-		if (flagTemp2 == 1) TEMP_CODE2();
-		else if (flagTemp3 == 1) TEMP_CODE3();
   }
 }
 
@@ -205,26 +202,6 @@ void TEMP_CODE(void){
     USART_SendData(USART2, tempCode[0]);
 
     flagTemp2 = 1;
-}
-
-void TEMP_CODE2(void){
-    /*Iniciar la transmision:*/
-    USART_SendData(USART2, tempCode2[0]);
-
-    if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
-		/*Se guarda lo recibido en la varibale Data:*/
-		temp2[0] = USART_ReceiveData(USART2);
-
-    flagTemp3 = 1;
-}
-
-void TEMP_CODE3(void){
-    /*Iniciar la transmision:*/
-    USART_SendData(USART2, tempCode3[0]);
-
-    if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
-		/*Se guarda lo recibido en la varibale Data:*/
-		temp3[0] = USART_ReceiveData(USART2);
 }
 
 void SERVO_1(void){
