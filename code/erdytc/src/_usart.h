@@ -1,31 +1,27 @@
 #ifndef _USART_H_
 #define _USART_H_
-/* - - - -   USART   - - - -*/
+
+/* * * * * * * * * * *         LIBRERIAS       * * * * * * * * * * * * * * */
+#include "standar.h"
+#include "string.h"
+#include "stm32f4xx_syscfg.h"
+
+/* * * * * * * * * * *          DEFINES        * * * * * * * * * * * * * * */
 /*Baud Rate USART:*/
 #define baudRate    50
 
+/* * * * * * * * * * *         FUNCIONES       * * * * * * * * * * * * * * */
+void INIT_USART_RX_TX(GPIO_TypeDef*, uint16_t, GPIO_TypeDef*, uint16_t, uint32_t);
+
+/* * * * * * * * * * *         VARIABLES       * * * * * * * * * * * * * * */
 /*Temperatura en grados:*/
 float tempDeg       = 0;
-
 /*Temperatura en valor digital:*/
 uint32_t tempDig    = 0;
-
 /*Flag recibir temperatura:*/
-uint32_t receiveTemp = 0;
 
 /*Variable para recibir el codigo transmitido por el SATDAC:*/
 char receivedTemp[8];
-
-/*Funciones para enviar los codigos de mocion del servo:*/
-void SERVO_1(void);
-void SERVO_2(void);
-
-/*Funcion para enviar el codigo de pedido de temperatura:*/
-void TEMP_CODE(void);
-void TEMP_CODE2(void);
-void TEMP_CODE3(void);
-
-void SD(void);
 
 /*Codigos para acceder al SATDAC:*/
 char servoCode1[8] = "a";
@@ -34,6 +30,5 @@ char tempCode  [8] = "c";
 char sdCode    [8] = "d";
 char tempCode2 [8] = "e";
 char tempCode3 [8] = "f";
-
 
 #endif // _USART_H_

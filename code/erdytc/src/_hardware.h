@@ -1,15 +1,9 @@
 #ifndef _HARDWARE_H_
 #define _HARDWARE_H_
 
-/*Definicion de pines del LCD:*/
-LCD_2X16_t LCD_2X16[] = {
-    /* Name  , PORT ,     PIN    ,         CLOCK       ,   Init    */
-    { TLCD_RS, GPIOE, GPIO_Pin_13, RCC_AHB1Periph_GPIOE, Bit_RESET },
-    { TLCD_E,  GPIOF, GPIO_Pin_15, RCC_AHB1Periph_GPIOF, Bit_RESET },
-    { TLCD_D4, GPIOF, GPIO_Pin_13, RCC_AHB1Periph_GPIOF, Bit_RESET },
-    { TLCD_D5, GPIOE, GPIO_Pin_9,  RCC_AHB1Periph_GPIOE, Bit_RESET },
-    { TLCD_D6, GPIOE, GPIO_Pin_11, RCC_AHB1Periph_GPIOE, Bit_RESET },
-    { TLCD_D7, GPIOF, GPIO_Pin_14, RCC_AHB1Periph_GPIOF, Bit_RESET },};
+#include "standar.h"
+#include "_lcd.h"
+#include "libs.h"
 
 /*Pulsadores:*/
 #define _F1 GPIOC

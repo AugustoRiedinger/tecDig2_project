@@ -1,28 +1,12 @@
 /*----------------------------------------------------------------*/
 /*LIBRERIAS:                                                      */
 /*----------------------------------------------------------------*/
-/*Librerias estandar:*/
-#include "functions.h"
-/*Definicion pines del hardware:*/
-#include "hardware.h"
-/*Control de los pines USART:*/
-#include "_usart.h"
-/*Control pin ADC:*/
-#include "_adc.h"
-/*Control del servomotor:*/
-#include "_servo.h"
-/*Control de la tarjeta SD:*/
-#include "_sd.h"
-char buffTemp[8];
-char buffTemp1[1] = "H";
-char buffTemp2[1] = "O";
-char buffTemp3[1] = "L";
-char test1[1] = "1";
-char test2[1] = "2";
-char test3[1] = "3";
-
-
-uint8_t i = 0;
+/*Librerias generales a utilzar:*/
+#include "_libs.h"
+/*Inicializacion de pines y funciones:*/
+#include "_init.h"
+/*Funciones locales:*/
+#include "_local.h"
 
 /*----------------------------------------------------------------*/
 /*                           MAIN:                                */
@@ -30,18 +14,7 @@ uint8_t i = 0;
 int main(void){
 
 /* * * * * * * * * * * * * INICIALIZ. * * * * * * * * * * * * */
-  /*Inicio del sistema:*/
-  SystemInit();
-  /*Inicializacion puertos USART:*/
-  INIT_USART_RX_TX(_RX, _rx, _TX, _tx, baudRate);
-  /*Inicializacion del servo como salida digital:*/
-  INIT_DO(_Servo, _servo);
-  /*Inicialización del TIM3 a 5 kHz:*/
-  INIT_TIM3(freq);
-  /*Inicializacion PC3 como ADC (LM35)*/
-  INIT_ADC(_LM35, _lm35);
-  /*Inicializacion tarjeta SD:*/
-  UB_Fatfs_Init();
+  INIT_ALL();
 
 /* * * * * * * * * * * * * BUCLE PPAL. * * * * * * * * * * * * */
   while (1)
@@ -80,59 +53,4 @@ void TIM3_IRQHandler(void) {
       /*Rehabilitacion del timer:*/
       TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
     }
-}
-
-/*Interrupcion por Transfer Request del DMA:*/
-void DMA2_Stream0_IRQHandler(void)
-{
-  /* transmission complete interrupt */
-  if (DMA_GetFlagStatus(DMA2_Stream0,DMA_FLAG_TCIF0))
-  {
-    /*Se para el timer:*/
-    TIM_Cmd(TIM3, DISABLE);
-
-    /*Resetear el flag del DMA:*/
-    DMA_ClearFlag(DMA2_Stream0,DMA_FLAG_TCIF0);
-  }
-}
-
-/*----------------------------------------------------------------*/
-/*                    FUNCIONES LOCALES:                          */
-/*----------------------------------------------------------------*/
-void READ_TEMP()
-{
-  /*Almacenar el valor digital de temperatura:*/
-  tempDig = READ_ADC(_LM35, _lm35);
-
-  tempAna = (float) tempDig * 3.0 / 5.0;
-
-  sprintf(buffTemp, "%.1f", tempAna);
-  USART_SendData(USART2, buffTemp[0]);
-}
-
-void WRITE_SD()
-{
-  /*Verifica si hay una tarjeta insertada:*/
-  if(UB_Fatfs_CheckMedia(MMC_0)==FATFS_OK)
-  {
-    /*Verifica si se pueden almacenar datos en la tarjeta ingresada:*/
-    if(UB_Fatfs_Mount(MMC_0) == FATFS_OK)
-    {
-      /*Abre el archivo para escritura:*/
-      if(UB_Fatfs_OpenFile(&myFile, "sd.txt", F_WR_NEW) == FATFS_OK)
-      {
-        /*Escribe el archivo:*/
-        UB_Fatfs_WriteString(&myFile, fila1);
-        /*Cierra el archivo:*/
-        UB_Fatfs_CloseFile(&myFile);
-      }
-      /*Media unmount:*/
-      UB_Fatfs_UnMount(MMC_0);
-    }
-  }
-}
-
-void DELAY(volatile uint32_t n)
-{
-  while(n--) {};
 }
