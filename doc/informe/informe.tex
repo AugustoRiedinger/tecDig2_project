@@ -1,0 +1,119 @@
+% Created 2022-02-22 mar 15:29
+% Intended LaTeX compiler: pdflatex
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\input{~/org/latex/author_TeoCir2_Riedinger.tex}
+\input{~/org/latex/ieee.tex}
+\date{\today}
+\title{Sistema de adquisión y transmisión de datos autosuficiente y controlable}
+\hypersetup{
+ pdfauthor={},
+ pdftitle={Sistema de adquisión y transmisión de datos autosuficiente y controlable},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 27.2 (Org mode 9.6)}, 
+ pdflang={Spanish}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+
+\section{Descripcion general:}
+\label{sec:orgcd7e8b3}
+\subsection{Introduccion:}
+\label{sec:org1e275ee}
+El objetivo del proyecto es construir un sistema digital de sensado autosuficiente, con la premisa de ser controlado a través de una estación de recepción de datos.
+
+Esto es, el proyecto se divide en dos sistemas que trabajan de forma codependiente pero que son controlados por microcontroladores distintos:
+
+\begin{itemize}
+\item Uno es el \textbf{SATDAC} (Sistema de Adquisicón y Transmisión de Datos Autosuficiente y Controlable), encargado de tomar y procesar muestras u obtener datos.
+\item Otro es la \textbf{ERDYTC} (Estación de Recepción de Datos Y Transmisión de Comandos), que se encontraría conectada al SATDAC y se encargaría de mostrar los datos obtenidos.
+\end{itemize}
+
+El SATDAC posee las siguientes capacidades:
+
+\begin{itemize}
+\item Sensado de variables analógicas; actualmente solo temperatura con presición de 2 decimales en un rango de 22.0 °C a 32 °C.
+\item Control y despliegue de periféricos por comando.
+\item Almacenamiento en memoria externa.
+\item Recepción y transmisión de datos por puerto USART.
+\end{itemize}
+
+Físicamente, el SATDAC cuenta con una compuerta que está inicialmente cerrada pero puede ser abierta remotamente solo a través de la ERDYTC.
+
+Y la ERDYTC las siguientes:
+
+\begin{itemize}
+\item Capacidad para mostrar datos recibidos y estados en LCD.
+\item Ingreso de comandos por usuario y transmisión de los mismos.
+\item Recepción y transmisión de datos por puerto USART.
+\end{itemize}
+\subsection{Interfaz con el usuario:}
+\label{sec:orga4c8ada}
+El sistema que más interacciona con el usuario es la ERDYTC. La misma cuenta con las siguientes cualidades:
+
+\begin{itemize}
+\item \textbf{Encendido}: el sistema se prende inmediatamente al conetarlo a la red (\(220 \: [V_{ac}] \: @ \: 50 [Hz]\)).
+\item \textbf{Pulsadores}: el sistema cuenta con cinco (5) pulsadores para que el usuario interaccione con el SATDAC. Estos pulsadores estan denotados en la carcasa del sistema:
+\begin{itemize}
+\item \emph{Pulsador 1 - Temperatura}: envía un comando al SATDAC para que transmita el valor instantáneo de temperatura tomado. Este valor se visualizará inmediatamente en el display LCD con el que cuenta la ERDYTC.
+\item \emph{Pulsador 2 - Servo posición 1}: envía un comando al SATDAC para movilizar el servo a la posición en que destrabará la compuerta de acceso.
+\item \emph{Pulsador 3 - Servo posicipon 2}: envía un comando al SATDAC para cerrar a través del mismo servomotor la compuerta de acceso.
+\item \emph{Pulsador 4 - Guardar datos en SD}: envía un comando al SATDAC para indicar que guarde el último valor de temperatura leído en la memoria externa SD.
+\item \emph{Pulsador 5 - Reset}: pulsador para resetear físicamente la ERDYTC.
+\end{itemize}
+\item \textbf{Display LCD}: el sistema cuenta con un LCD 2x16 donde se muestran los estados y transiciones de la ERDYTC, como también las acciones que realiza en el momento el SATDAC.
+\end{itemize}
+
+Luego, el SATDAC es, como se dijo en la introducción, un sistema cerrado que solo posee una capacidad de interacción con el usuario: la memoria SD donde se almacena el último dato de temperatura medido. Luego, el control del SATDAC se da a través de la ERDYTC.
+
+\subsection{Operación:}
+\label{sec:org72dcccd}
+El sistema está pensado para ser controlado completamente a partir de la ERDYTC. El principio de operación que se debería serguir es el siguiente:
+
+\begin{itemize}
+\item A través de la ERDYTC, presionar el pulsador 1 para indicarle al SATDAC que tome una muestra de temperatura.
+\item Una vez vista la temperatura en el LCD local de la ERDYTC, presionar el pulsador 4 para almacenar dicho valor de temperatura en la SD.
+\item Repetir dicho proceso todas las veces que sea necesario.
+\item Una vez finalizado, presionar el pulsador 2 para abrir la ocmpuerta del SATDAC.
+\item Una vez que se indica que la compuerta fue abierta, es posible acceder al SATDAC y realizar la extracción de la memoria SD.
+\item Luego, presionar pulsador 3 para sellar la compuerta; y repetir estos dos últimos pasos una vez que la memoria SD fue utilizada (se extrajeron los datos de la memoria).
+\end{itemize}
+
+\subsection{Mantenimiento:}
+\label{sec:org9d62904}
+Para realizar el mantenimiento de la ERDYTC no se debe realizar ninguna operación especial, basta con desarmar la carcasa de la misma y retirar el microcontrolador de la placa PCB que se encuentra en su interior.
+
+En cambio, para realizar el mantenimiento del SATDAC es necesario tener la ERDYTC en funcionamiento. A partir de ello, se debe realizar el siguiente procedimiento:
+
+\begin{itemize}
+\item Presionar el pulsador 2 en la ERDYTC para abrir la compuerta del SATDAC.
+\item Desconectar la ERDYTC de la red de alimentación.
+\item Desconetar la batería del SATDAC.
+\item Una vez finalizado el mantenimiento del SATDAC, se debe trabar manualmente la compuerta a partir de colocar el servomotor en su lugar inicial.
+\end{itemize}
+\subsubsection{Seguridad:}
+\label{sec:org156444e}
+\textbf{Se debe desconectar de la red y/o alimentación todos los elementos antes de realizar el mantenimiento}.
+
+Idealmente, también sería inteligente deshacer la conexión entre el SATDAC y la ERDYTC antes de realizar el mantenimiento de un sistema de forma independientemente.
+\section{Hardware:}
+\label{sec:orgedc7963}
+\section{Software:}
+\label{sec:org9cba68d}
+La descripción completa de todo el software se puede visualizar en el siguiente enlace: \url{https://github.com/AugustoRiedinger/tecDig2\_project/tree/master/code}.
+
+En el mismo, también se pueden descargar y contribuir a todos los archivos tanto del software como del proyecto en general.
+\end{document}

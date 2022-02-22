@@ -38,7 +38,6 @@ int main(void){
 /*----------------------------------------------------------------*/
 /*                     INTERRUPCIONES:                            */
 /*----------------------------------------------------------------*/
-
 /*Interrupcion por vencimiento de cuenta de TIM3 cada 1/FS:*/
 void TIM3_IRQHandler(void) {
     if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {

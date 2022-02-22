@@ -1,0 +1,76 @@
+#+LATEX_CLASS: IEEEtran
+#+LATEX_CLASS_OPTIONS: [conference]
+#+LANGUAGE: spanish
+#+LATEX_COMPILER: pdflatex
+#+TITLE: Sistema de adquisión y transmisión de datos autosuficiente y controlable
+#+AUTHOR:
+#+LATEX_HEADER: \input{~/org/latex/author_TeoCir2_Riedinger.tex}
+#+LATEX_HEADER: \input{~/org/latex/ieee.tex}
+#+STARTUP: latexpreview
+#+STARTUP: fold
+
+* Descripcion general:
+** Introduccion:
+El objetivo del proyecto es construir un sistema digital de sensado autosuficiente, con la premisa de ser controlado a través de una estación de recepción de datos.
+
+Esto es, el proyecto se divide en dos sistemas que trabajan de forma codependiente pero que son controlados por microcontroladores distintos:
+
++ Uno es el *SATDAC* (Sistema de Adquisicón y Transmisión de Datos Autosuficiente y Controlable), encargado de tomar y procesar muestras u obtener datos.
++ Otro es la *ERDYTC* (Estación de Recepción de Datos Y Transmisión de Comandos), que se encontraría conectada al SATDAC y se encargaría de mostrar los datos obtenidos.
+
+El SATDAC posee las siguientes capacidades:
+
+ + Sensado de variables analógicas; actualmente solo temperatura con presición de 2 decimales en un rango de 22.0 °C a 32 °C.
+ + Control y despliegue de periféricos por comando.
+ + Almacenamiento en memoria externa.
+ + Recepción y transmisión de datos por puerto USART.
+
+Físicamente, el SATDAC cuenta con una compuerta que está inicialmente cerrada pero puede ser abierta remotamente solo a través de la ERDYTC.
+
+Y la ERDYTC las siguientes:
+
+ + Capacidad para mostrar datos recibidos y estados en LCD.
+ + Ingreso de comandos por usuario y transmisión de los mismos.
+ + Recepción y transmisión de datos por puerto USART.
+** Interfaz con el usuario:
+El sistema que más interacciona con el usuario es la ERDYTC. La misma cuenta con las siguientes cualidades:
+
+ + *Encendido*: el sistema se prende inmediatamente al conetarlo a la red ($220 \: [V_{ac}] \: @ \: 50 [Hz]$).
+ + *Pulsadores*: el sistema cuenta con cinco (5) pulsadores para que el usuario interaccione con el SATDAC. Estos pulsadores estan denotados en la carcasa del sistema:
+   + /Pulsador 1 - Temperatura/: envía un comando al SATDAC para que transmita el valor instantáneo de temperatura tomado. Este valor se visualizará inmediatamente en el display LCD con el que cuenta la ERDYTC.
+   + /Pulsador 2 - Servo posición 1/: envía un comando al SATDAC para movilizar el servo a la posición en que destrabará la compuerta de acceso.
+   + /Pulsador 3 - Servo posicipon 2/: envía un comando al SATDAC para cerrar a través del mismo servomotor la compuerta de acceso.
+   + /Pulsador 4 - Guardar datos en SD/: envía un comando al SATDAC para indicar que guarde el último valor de temperatura leído en la memoria externa SD.
+   + /Pulsador 5 - Reset/: pulsador para resetear físicamente la ERDYTC.
+ + *Display LCD*: el sistema cuenta con un LCD 2x16 donde se muestran los estados y transiciones de la ERDYTC, como también las acciones que realiza en el momento el SATDAC.
+
+Luego, el SATDAC es, como se dijo en la introducción, un sistema cerrado que solo posee una capacidad de interacción con el usuario: la memoria SD donde se almacena el último dato de temperatura medido. Luego, el control del SATDAC se da a través de la ERDYTC.
+
+** Operación:
+El sistema está pensado para ser controlado completamente a partir de la ERDYTC. El principio de operación que se debería serguir es el siguiente:
+
+ + A través de la ERDYTC, presionar el pulsador 1 para indicarle al SATDAC que tome una muestra de temperatura.
+ + Una vez vista la temperatura en el LCD local de la ERDYTC, presionar el pulsador 4 para almacenar dicho valor de temperatura en la SD.
+ + Repetir dicho proceso todas las veces que sea necesario.
+ + Una vez finalizado, presionar el pulsador 2 para abrir la ocmpuerta del SATDAC.
+ + Una vez que se indica que la compuerta fue abierta, es posible acceder al SATDAC y realizar la extracción de la memoria SD.
+ + Luego, presionar pulsador 3 para sellar la compuerta; y repetir estos dos últimos pasos una vez que la memoria SD fue utilizada (se extrajeron los datos de la memoria).
+
+** Mantenimiento:
+Para realizar el mantenimiento de la ERDYTC no se debe realizar ninguna operación especial, basta con desarmar la carcasa de la misma y retirar el microcontrolador de la placa PCB que se encuentra en su interior.
+
+En cambio, para realizar el mantenimiento del SATDAC es necesario tener la ERDYTC en funcionamiento. A partir de ello, se debe realizar el siguiente procedimiento:
+
+ + Presionar el pulsador 2 en la ERDYTC para abrir la compuerta del SATDAC.
+ + Desconectar la ERDYTC de la red de alimentación.
+ + Desconetar la batería del SATDAC.
+ + Una vez finalizado el mantenimiento del SATDAC, se debe trabar manualmente la compuerta a partir de colocar el servomotor en su lugar inicial.
+*** Seguridad:
+*Se debe desconectar de la red y/o alimentación todos los elementos antes de realizar el mantenimiento*.
+
+Idealmente, también sería inteligente deshacer la conexión entre el SATDAC y la ERDYTC antes de realizar el mantenimiento de un sistema de forma independientemente.
+* Hardware:
+* Software:
+La descripción completa de todo el software se puede visualizar en el siguiente enlace: [[https://github.com/AugustoRiedinger/tecDig2_project/tree/master/code]].
+
+En el mismo, también se pueden descargar y contribuir a todos los archivos tanto del software como del proyecto en general.

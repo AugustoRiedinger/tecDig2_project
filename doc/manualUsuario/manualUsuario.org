@@ -1,0 +1,35 @@
+#+LATEX_CLASS: IEEEtran
+#+LATEX_CLASS_OPTIONS: [conference]
+#+LANGUAGE: spanish
+#+LATEX_COMPILER: pdflatex
+#+TITLE: Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual de Servicio
+#+AUTHOR:
+#+LATEX_HEADER: \input{~/org/latex/author_TeoCir2_Riedinger.tex}
+#+LATEX_HEADER: \input{~/org/latex/ieee.tex}
+#+STARTUP: latexpreview
+#+STARTUP: fold
+
+* Consideraciones de seguridad:
+** Riesgos y procedimientos de seguridad:
+Ambos sistemas operan niveles de bajos de voltaje, por lo que los riesgos al realizar los mantenimientos son mínimos. Sin embargo, se deben tener las siguientes precauciones al operar:
+
+ + Utilizar calzado y pulseras antiestáticas para evitar el daño a los equipos.
+ + Desconectar de la alimentación ambos sistemas antes de realizar el mantenimiento (aunque sea de solo un sistema en particular).
+ + Desconectar la conexión USART entre ambos sistemas antes de realizar el mantenimiento de uno de los mismos.
+* Herramientas y equipos para realizar el servicio:
+** Herramientas e instrumental necesario:
+Será necesario para realizar el mantenimiento las siguientes herramientas:
+
+ + Destornilladores tipo paleta y Philips para realizar el desamblaje de las carcasas de los equipos.
+ + Multímetro digital o analógico para corroborar los valores de referencia (con el sistema encendido para realizar mediciones de voltaje y con el sistema desconectado para realizar mediciones de continuidad).
+ + Osciloscopio digital u analógico para corroborar las señales de referencia (con el sistema conectado).
+ + Manuales de usuario de los elementos anteriores y de los siguientes:
+   + STM32F429ZI-Nucleo.
+   + LM35Z.
+   + LM358.
+** Software y aplicaciones necesarias:
+Para comprobar y debugger el código embebido en el sistema será necesario el programa libre de ST Atollic TRUEStudio. Indiferentemente, también es posible utilizar cualquiera de las opciones ofrecidas por ST o algún otro programa basado en Eclipse, pero se aclara que el programa de ambos sistemas fue debuggeado en Atollic TRUEStudio y solo probado en el mismo.
+
+Luego, para editar los archivos del PCB será necesario el software Proteus 8.12 SP0 Professional.
+
+Todos los archivos de software se pueden encontrar en la página oficial de GitHub del proyecto: https://github.com/AugustoRiedinger/tecDig2_project.
