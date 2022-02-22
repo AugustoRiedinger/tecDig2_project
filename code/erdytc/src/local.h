@@ -1,7 +1,6 @@
 #ifndef LOCAL_H_
 #define LOCAL_H_
 
-#include "standar.h"
 #include "libs.h"
 
 void TEMP_CODE(void);

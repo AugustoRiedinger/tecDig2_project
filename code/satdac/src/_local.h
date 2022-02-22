@@ -5,5 +5,6 @@
 
 void READ_TEMP(void);
 void WRITE_SD(void);
+char DECODE_TEMP(float tempFloat);
 
 #endif // _LOCAL_H_

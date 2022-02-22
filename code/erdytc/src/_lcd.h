@@ -64,7 +64,7 @@ uint8_t fiveSecDelay = 0;
 /*Buffers para mostrar las variables:*/
 char buffTemp1[8];
 char buffTemp2[8];
-char buffTemp3[8];
+char buffTemp [8];
 char temp1[8];
 char temp2[8];
 char temp3[8];

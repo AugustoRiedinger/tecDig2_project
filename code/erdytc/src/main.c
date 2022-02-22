@@ -19,7 +19,7 @@ int main(void){
   {
     if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
       /*Se guarda lo recibido en la varibale Data:*/
-      temp1[0] = USART_ReceiveData(USART2);
+      receivedTemp[0] = USART_ReceiveData(USART2);
   }
 }
 

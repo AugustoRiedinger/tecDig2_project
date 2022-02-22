@@ -7,12 +7,7 @@ void INITIAL_SCREEN(void)
     PRINT_LCD_2x16(LCD_2X16, 2, 0, "TD II-ERDYTC");
     PRINT_LCD_2x16(LCD_2X16, 2, 1, "Temp=");
 
-    sprintf(buffTemp1, "%c", temp1[0]);
-    PRINT_LCD_2x16(LCD_2X16, 8, 1, buffTemp1);
-    sprintf(buffTemp2, "%c", temp2[0]);
-    PRINT_LCD_2x16(LCD_2X16, 9, 1, buffTemp2);
-    sprintf(buffTemp3, "%c", temp3[0]);
-    PRINT_LCD_2x16(LCD_2X16, 10, 1, buffTemp3);
+    sprintf(buffTemp, "%c", DECODE_TEMP(receivedTemp));
 }
 
 /*Pantalla para mostrar mensaje de actualizacion de temperatura:*/
