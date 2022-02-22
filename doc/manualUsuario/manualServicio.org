@@ -1,0 +1,104 @@
+#+LATEX_CLASS: IEEEtran
+#+LATEX_CLASS_OPTIONS: [conference]
+#+LANGUAGE: spanish
+#+LATEX_COMPILER: pdflatex
+#+TITLE: Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual de Servicio
+#+AUTHOR:
+#+LATEX_HEADER: \input{~/org/latex/author_TecDig2_Riedinger-Garcia.tex}
+#+LATEX_HEADER: \input{~/org/latex/ieee.tex}
+#+STARTUP: latexpreview
+#+STARTUP: fold
+
+* Consideraciones de seguridad:
+** Riesgos y procedimientos de seguridad:
+Ambos sistemas operan niveles de bajos de voltaje, por lo que los riesgos al realizar los mantenimientos son mínimos. Sin embargo, se deben tener las siguientes precauciones al operar:
+
+ + Utilizar calzado y pulseras antiestáticas para evitar el daño a los equipos.
+ + Desconectar de la alimentación ambos sistemas antes de realizar el mantenimiento (aunque sea de solo un sistema en particular).
+ + Desconectar la conexión USART entre ambos sistemas antes de realizar el mantenimiento de uno de los mismos.
+* Herramientas y equipos para realizar el servicio:
+** Herramientas e instrumental necesario:
+Será necesario para realizar el mantenimiento las siguientes herramientas:
+
+ + Destornilladores tipo paleta y Philips para realizar el desamblaje de las carcasas de los equipos.
+ + Multímetro digital o analógico para corroborar los valores de referencia (con el sistema encendido para realizar mediciones de voltaje y con el sistema desconectado para realizar mediciones de continuidad).
+ + Osciloscopio digital u analógico para corroborar las señales de referencia (con el sistema conectado).
+ + Manuales de usuario de los elementos anteriores y de los siguientes:
+   + STM32F429ZI-Nucleo.
+   + LM35Z.
+   + LM358.
+** Software y aplicaciones necesarias:
+Para comprobar y debugger el código embebido en el sistema será necesario el programa libre de ST Atollic TRUEStudio. Indiferentemente, también es posible utilizar cualquiera de las opciones ofrecidas por ST o algún otro programa basado en Eclipse, pero se aclara que el programa de ambos sistemas fue debuggeado en Atollic TRUEStudio y solo probado en el mismo.
+
+Luego, para editar los archivos del PCB será necesario el software Proteus 8.12 SP0 Professional.
+
+Todos los archivos de software se pueden encontrar en la página oficial de GitHub del proyecto: [[https://github.com/AugustoRiedinger/tecDig2_project]].
+* Diagramas de circuito
+** Diagrama general en bloques:
+#+CAPTION:Diagrama general en bloques
+#+LABEL:fig:diagramaBloques
+[[file:../../images/diagramaBloques.jpg]]
+
+En la Fig. \ref{fig:diagramaBloques} se puede observar el diagrama en bloques general del sistema. El mismo describe gráficamente cada una de las funcionalidades y aplicaciones del sistema.
+** Circuitos esquemáticos y PCB:
+En la Fig. \ref{fig:estacionEsquematico} se puede visualizar el esquemático de la ERDYTC para realizar el mantenimiento.
+
+#+CAPTION:Esquemático ERDYTC
+#+LABEL:fig:estacionEsquematico
+[[file:../../images/estacionEsquematico.png]]
+
+En la Fig. \ref{fig:cuboEsquematico} se puede visualizar el esquemático del SATDAC para realizar el mantenimiento.
+
+#+CAPTION:Esquemático SATDAC
+#+LABEL:fig:cuboEsquematico
+[[file:../../images/cuboEsquematico.png]]
+
+** Descripción de conectores y jumpers:
+Los conectores principales utilizados en el sistema son de alimentación:
+
+ + En la ERDYTC, el conector de alimentación se puede desamblar a partir del transformador que se conecta a la red, no es necesario realizar la desconexión de la STM.
+ + En el SATDAC, el conector de alimentación es recomendable sacarlo directamente de la STM.
+
+Luego, ambos sistemas cuentan en sus respectivas PCB con LEDs de estado para indicar que el sistema está alimentado.
+
+Finalmente, ambos PCB también cuentan con un JUMPER J1 para cambiar el pin de conexión del TX de ambos sistemas. Este pin debe ser dejado abierto a menos que se cambie desde el software la conexión del TX-USART en los respectivos sistemas.
+* Mediciones y ajustes:
+** Puntos de referencia:
+Ambos sistemas cuentan con LEDs marcados testigos que indican los diferentes bloques de tensión. En el mantenimiento, se debería verificar primeramente que todos los LEDs de los PCB se encuentren encendidos. De no ser así, se puede rastrear a partir de los mismos y del los esquemáticos el punto de error.
+** Señales de referencia:
+La única señal de referencia que poseen ambos sistemas es la del servomotor en el SATDAC.
+
+La misma emana del puerto PG0, o hacia la base del transitor amplificador corte-saturación T1. Se debería verificar que dicha señal sea un pulso cuadrado de período 50 [Hz] con un ancho en cero de 1 milisegundo.
+
+Alternativamente, se puede verificar la señal inversa en el colector del transistor T1, como un pulso de también 50 [Hz] y un ancho en "1" de 1 milisegundo.
+
+El ajuste de estas ondas debe ser realizado exclusivamente por software.
+* Procedimientos de reemplazo:
+** Módulos:
+Ambos sistemas cuentan con PCB realizados en poncho; por tanto, en caso de que los microcontroladores no funcionen, los mismos se pueden reemplazar fácilmente al desamblar la PCB del módulo.
+* Mensajes de error:
+El único mensaje de error que poseen los sistemas se da en el ERDYTC; y se puede visualizar en la Fig. \ref{fig:error}.
+
+#+CAPTION:Menaje de error SD
+#+LABEL:fig:error
+[[file:../../images/error.png]]
+
+El mismo indica que no se pudieron guardar datos en la SD. En caso de ver este error, es recomendable verificar primeramente el módulo SD se encuentre bien conectado en el SATDAC.
+
+Para ello, primero se debe pulsar el pulsador 2 para abrir la compuerta del SATDAC; y luego de desconectar el conexionado entre ambos sistemas y sus alimentaciones, verificar la correcta conexión del módulo SD como se indica en el esquemático.
+
+Luego, se debe cerrar manualmente la compuerta con el servomotor y a partir de allí volver a realizar todas las conexiones. Si aún así se visualiza este mensaje luego de presionar el pulsador 3; es recomendable realizar el procedimiento anterior y cambiar el módulo SD.
+* Lista de partes y reemplazos:
+En las Fig. \ref{fig:estacionBOM} y \ref{fig:cuboBOM} se pueden visualizar los componentes que componen cada sistema respectivamente.
+
+#+CAPTION:ERDYTC partes
+#+LABEL:fig:estacionBOM
+[[file:../../images/estacionBOM.png]]
+
+#+CAPTION:SATDACT partes
+#+LABEL:fig:cuboBOM
+[[file:../../images/cuboBOM.png]]
+
+Es aconsajable que, en caso de reemplazo, se cambien los componetes por los listados anteriormente. De no ser así, se aconseja buscar los modelos más parecidos.
+* Información y soporte:
+Cualquier pregunta es aconsajable el contacto hacia los autores o en el siguiente enlace: [[https://www.openstm32.org/forums]].

@@ -2,52 +2,78 @@
 #+LATEX_CLASS_OPTIONS: [conference]
 #+LANGUAGE: spanish
 #+LATEX_COMPILER: pdflatex
-#+TITLE: Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual de Servicio
+#+TITLE: Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual Usuario
 #+AUTHOR:
-#+LATEX_HEADER: \input{~/org/latex/author_TeoCir2_Riedinger.tex}
+#+LATEX_HEADER: \input{~/org/latex/author_TecDig2_Riedinger-Garcia.tex}
 #+LATEX_HEADER: \input{~/org/latex/ieee.tex}
 #+STARTUP: latexpreview
 #+STARTUP: fold
 
-* Consideraciones de seguridad:
-** Riesgos y procedimientos de seguridad:
-Ambos sistemas operan niveles de bajos de voltaje, por lo que los riesgos al realizar los mantenimientos son mínimos. Sin embargo, se deben tener las siguientes precauciones al operar:
+* Descripción del sistema:
 
- + Utilizar calzado y pulseras antiestáticas para evitar el daño a los equipos.
- + Desconectar de la alimentación ambos sistemas antes de realizar el mantenimiento (aunque sea de solo un sistema en particular).
- + Desconectar la conexión USART entre ambos sistemas antes de realizar el mantenimiento de uno de los mismos.
-* Herramientas y equipos para realizar el servicio:
-** Herramientas e instrumental necesario:
-Será necesario para realizar el mantenimiento las siguientes herramientas:
+El proyecto se divide en dos sistemas que trabajan de forma codependiente pero que son controlados por microcontroladores distintos:
 
- + Destornilladores tipo paleta y Philips para realizar el desamblaje de las carcasas de los equipos.
- + Multímetro digital o analógico para corroborar los valores de referencia (con el sistema encendido para realizar mediciones de voltaje y con el sistema desconectado para realizar mediciones de continuidad).
- + Osciloscopio digital u analógico para corroborar las señales de referencia (con el sistema conectado).
- + Manuales de usuario de los elementos anteriores y de los siguientes:
-   + STM32F429ZI-Nucleo.
-   + LM35Z.
-   + LM358.
-** Software y aplicaciones necesarias:
-Para comprobar y debugger el código embebido en el sistema será necesario el programa libre de ST Atollic TRUEStudio. Indiferentemente, también es posible utilizar cualquiera de las opciones ofrecidas por ST o algún otro programa basado en Eclipse, pero se aclara que el programa de ambos sistemas fue debuggeado en Atollic TRUEStudio y solo probado en el mismo.
++ Uno es el *SATDAC* (Sistema de Adquisicón y Transmisión de Datos Autosuficiente y Controlable), encargado de tomar y procesar muestras u obtener datos.
++ Otro es la *ERDYTC* (Estación de Recepción de Datos Y Transmisión de Comandos), que se encontraría conectada al SATDAC y se encargaría de mostrar los datos obtenidos.
 
-Luego, para editar los archivos del PCB será necesario el software Proteus 8.12 SP0 Professional.
+El SATDAC posee las siguientes capacidades:
 
-Todos los archivos de software se pueden encontrar en la página oficial de GitHub del proyecto: [[https://github.com/AugustoRiedinger/tecDig2_project]].
-* Diagramas de circuito
-** Diagrama general en bloques:
-#+CAPTION:Diagrama general en bloques
-#+LABEL:fig:diagramaBloques
-[[file:../../images/diagramaBloques.jpg]]
+ + Sensado de variables analógicas; actualmente solo temperatura con presición de 2 decimales en un rango de 22.0 °C a 32 °C.
+ + Control y despliegue de periféricos por comando.
+ + Almacenamiento en memoria externa.
+ + Recepción y transmisión de datos por puerto USART.
 
-En la Fig. \ref{fig:diagramaBloques} se puede observar el diagrama en bloques general del sistema. El mismo describe gráficamente cada una de las funcionalidades y aplicaciones del sistema.
-** Circuitos esquemáticos y PCD:
-** Descripción de conectores y jumpers:
-Los conectores principales utilizados en el sistema son de alimentación:
+Físicamente, el SATDAC cuenta con una compuerta que está inicialmente cerrada pero puede ser abierta remotamente solo a través de la ERDYTC.
 
- + En la ERDYTC, el conector de alimentación se puede desamblar a partir del transformador que se conecta a la red, no es necesario realizar la desconexión de la STM.
- + En el SATDAC, el conector de alimentación es recomendable sacarlo directamente de la STM.
+Y la ERDYTC las siguientes:
 
-Luego, ambos sistemas cuentan en sus respectivas PCB con LEDs de estado para indicar que el sistema está alimentado.
+ + Capacidad para mostrar datos recibidos y estados en LCD.
+ + Ingreso de comandos por usuario y transmisión de los mismos.
+ + Recepción y transmisión de datos por puerto USART.
+* Interfaz con el usuario:
+El sistema que más interacciona con el usuario es la ERDYTC. La misma cuenta con las siguientes cualidades:
 
-Finalmente, ambos PCB también cuentan con un JUMPER J1 para cambiar el pin de conexión del TX de ambos sistemas. Este pin debe ser dejado abierto a menos que se cambie desde el software la conexión del TX-USART en los respectivos sistemas.
-* Mediciones y ajustes:
+ + *Encendido*: el sistema se prende inmediatamente al conetarlo a la red ($220 \: [V_{ac}] \: @ \: 50 [Hz]$).
+ + *Pulsadores*: el sistema cuenta con cinco (5) pulsadores para que el usuario interaccione con el SATDAC. Estos pulsadores estan denotados en la carcasa del sistema:
+   + /Pulsador 1 - Temperatura/: envía un comando al SATDAC para que transmita el valor instantáneo de temperatura tomado. Este valor se visualizará inmediatamente en el display LCD con el que cuenta la ERDYTC.
+   + /Pulsador 2 - Servo posición 1/: envía un comando al SATDAC para movilizar el servo a la posición en que destrabará la compuerta de acceso.
+   + /Pulsador 3 - Servo posicipon 2/: envía un comando al SATDAC para cerrar a través del mismo servomotor la compuerta de acceso.
+   + /Pulsador 4 - Guardar datos en SD/: envía un comando al SATDAC para indicar que guarde el último valor de temperatura leído en la memoria externa SD.
+   + /Pulsador 5 - Reset/: pulsador para resetear físicamente la ERDYTC.
+ + *Display LCD*: el sistema cuenta con un LCD 2x16 donde se muestran los estados y transiciones de la ERDYTC, como también las acciones que realiza en el momento el SATDAC.
+
+Luego, el SATDAC es, como se dijo en la introducción, un sistema cerrado que solo posee una capacidad de interacción con el usuario: la memoria SD donde se almacena el último dato de temperatura medido. Luego, el control del SATDAC se da a través de la ERDYTC.
+* Menues:
+Se describirán los distintos menúes que se visualizan en la ERDYTC.
+
+ + *Pantalla inicial*: menú que se muestra al iniciar el sistema. Indica el último valor de temperatura medido por el SATDAC. Se puede visualizar en la Fig. \ref{fig:pantallaInicial}.
+
+#+CAPTION:Menú pantalla inicial
+#+LABEL:fig:pantallaInicial
+[[file:../../images/pantallaInicial.png]]
+
+ + *Pantalla actualización temperatura*: mensaje que se muestra al presionar el /Pulsador 1 - Temperatura/. Indica que el SATDAC se encuentra en proceso de actualizar el valor de temperatura. Se puede visualizar en la Fig. \ref{fig:pantallaTemperatura}.
+
+#+CAPTION:Pantalla actualización temperatura
+#+LABEL:fig:pantallaTemperatura
+[[file:../../images/pantallaTemperatura.png]]
+
+ + . *Pantalla servo posición 1*: mensaje que se muestra al presionar el /Pulsador 2 - Servo posición 1/. Indica que el servomotor del SATDAC se movió 90° con respecto a su posición inicial y por tanto se destrabó la compuerta para acceder al mismo. Se puede visualizar en la Fig. \ref{fig:pantallaServo1}
+
+#+CAPTION:Pantalla servo posición 1
+#+LABEL:fig:pantallaServo1
+[[file:../../images/pantallaServo1.png]]
+
+ + *Pantalla servo posición 2*: mensaje que se muestra al presionar el /Pulsador 3 - Servo posición 2/. Indica que el servomotor del SATDAC se movió 90° con respecto a su posición final y por tanto se trabó la compuerta para acceder al mismo. Se puede visualizar en la Fig. \ref{fig:pantallaServo2}.
+
+#+CAPTION:Pantalla servo posición 2
+#+LABEL:fig:pantallaServo2
+[[file:../../images/pantallaServo2.png]]
+
+ + *Pantalla SD*: mensaje que se muestra al presionar el /Pulsador 4 - SD/. Indica que el SATDAC se encuentra en el proceso de guardar el último valor de temperatura en la memoria externa SD. Se puede visualizar en la Fig. \ref{fig:pantallaSD}.
+
+#+CAPTION:Pantalla SD
+#+LABEL:fig:pantallaSD
+[[file:../../images/pantallaSD.png]]
+
+Todos los menúes anteriormente descritos se pueden visualizar durante 5 segundos luego de que aparecen (a exepción de la pantalla inicial, que es el mensaje que se muestra por defecto) para que el usuario tenga tiempo necesario a leer o anotar lo que se ve.

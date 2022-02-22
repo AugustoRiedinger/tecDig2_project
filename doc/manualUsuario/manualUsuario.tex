@@ -1,4 +1,4 @@
-% Created 2022-02-22 mar 16:09
+% Created 2022-02-22 mar 18:49
 % Intended LaTeX compiler: pdflatex
 \documentclass[conference]{IEEEtran}
 \usepackage[utf8]{inputenc}
@@ -12,13 +12,13 @@
 \usepackage{amssymb}
 \usepackage{capt-of}
 \usepackage{hyperref}
-\input{~/org/latex/author_TeoCir2_Riedinger.tex}
+\input{~/org/latex/author_TecDig2_Riedinger-Garcia.tex}
 \input{~/org/latex/ieee.tex}
 \date{\today}
-\title{Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual de Servicio}
+\title{Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual Usuario}
 \hypersetup{
  pdfauthor={},
- pdftitle={Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual de Servicio},
+ pdftitle={Sistema de adquisión y transmisión de datos autosuficiente y controlable - Manual Usuario},
  pdfkeywords={},
  pdfsubject={},
  pdfcreator={Emacs 27.2 (Org mode 9.6)}, 
@@ -29,48 +29,105 @@
 \tableofcontents
 
 
-\section{Consideraciones de seguridad:}
-\label{sec:orgdbc0214}
-\subsection{Riesgos y procedimientos de seguridad:}
-\label{sec:orgd3031b4}
-Ambos sistemas operan niveles de bajos de voltaje, por lo que los riesgos al realizar los mantenimientos son mínimos. Sin embargo, se deben tener las siguientes precauciones al operar:
+\section{Descripción del sistema:}
+\label{sec:org0377d17}
+
+El proyecto se divide en dos sistemas que trabajan de forma codependiente pero que son controlados por microcontroladores distintos:
 
 \begin{itemize}
-\item Utilizar calzado y pulseras antiestáticas para evitar el daño a los equipos.
-\item Desconectar de la alimentación ambos sistemas antes de realizar el mantenimiento (aunque sea de solo un sistema en particular).
-\item Desconectar la conexión USART entre ambos sistemas antes de realizar el mantenimiento de uno de los mismos.
+\item Uno es el \textbf{SATDAC} (Sistema de Adquisicón y Transmisión de Datos Autosuficiente y Controlable), encargado de tomar y procesar muestras u obtener datos.
+\item Otro es la \textbf{ERDYTC} (Estación de Recepción de Datos Y Transmisión de Comandos), que se encontraría conectada al SATDAC y se encargaría de mostrar los datos obtenidos.
 \end{itemize}
-\section{Herramientas y equipos para realizar el servicio:}
-\label{sec:org02bb197}
-\subsection{Herramientas e instrumental necesario:}
-\label{sec:orge3339a5}
-Será necesario para realizar el mantenimiento las siguientes herramientas:
+
+El SATDAC posee las siguientes capacidades:
 
 \begin{itemize}
-\item Destornilladores tipo paleta y Philips para realizar el desamblaje de las carcasas de los equipos.
-\item Multímetro digital o analógico para corroborar los valores de referencia (con el sistema encendido para realizar mediciones de voltaje y con el sistema desconectado para realizar mediciones de continuidad).
-\item Osciloscopio digital u analógico para corroborar las señales de referencia (con el sistema conectado).
-\item Manuales de usuario de los elementos anteriores y de los siguientes:
+\item Sensado de variables analógicas; actualmente solo temperatura con presición de 2 decimales en un rango de 22.0 °C a 32 °C.
+\item Control y despliegue de periféricos por comando.
+\item Almacenamiento en memoria externa.
+\item Recepción y transmisión de datos por puerto USART.
+\end{itemize}
+
+Físicamente, el SATDAC cuenta con una compuerta que está inicialmente cerrada pero puede ser abierta remotamente solo a través de la ERDYTC.
+
+Y la ERDYTC las siguientes:
+
 \begin{itemize}
-\item STM32F429ZI-Nucleo.
-\item LM35Z.
-\item LM358.
+\item Capacidad para mostrar datos recibidos y estados en LCD.
+\item Ingreso de comandos por usuario y transmisión de los mismos.
+\item Recepción y transmisión de datos por puerto USART.
 \end{itemize}
+\section{Interfaz con el usuario:}
+\label{sec:org2e6d0df}
+El sistema que más interacciona con el usuario es la ERDYTC. La misma cuenta con las siguientes cualidades:
+
+\begin{itemize}
+\item \textbf{Encendido}: el sistema se prende inmediatamente al conetarlo a la red (\(220 \: [V_{ac}] \: @ \: 50 [Hz]\)).
+\item \textbf{Pulsadores}: el sistema cuenta con cinco (5) pulsadores para que el usuario interaccione con el SATDAC. Estos pulsadores estan denotados en la carcasa del sistema:
+\begin{itemize}
+\item \emph{Pulsador 1 - Temperatura}: envía un comando al SATDAC para que transmita el valor instantáneo de temperatura tomado. Este valor se visualizará inmediatamente en el display LCD con el que cuenta la ERDYTC.
+\item \emph{Pulsador 2 - Servo posición 1}: envía un comando al SATDAC para movilizar el servo a la posición en que destrabará la compuerta de acceso.
+\item \emph{Pulsador 3 - Servo posicipon 2}: envía un comando al SATDAC para cerrar a través del mismo servomotor la compuerta de acceso.
+\item \emph{Pulsador 4 - Guardar datos en SD}: envía un comando al SATDAC para indicar que guarde el último valor de temperatura leído en la memoria externa SD.
+\item \emph{Pulsador 5 - Reset}: pulsador para resetear físicamente la ERDYTC.
 \end{itemize}
-\subsection{Software y aplicaciones necesarias:}
-\label{sec:org8a55edb}
-Para comprobar y debugger el código embebido en el sistema será necesario el programa libre de ST Atollic TRUEStudio. Indiferentemente, también es posible utilizar cualquiera de las opciones ofrecidas por ST o algún otro programa basado en Eclipse, pero se aclara que el programa de ambos sistemas fue debuggeado en Atollic TRUEStudio y solo probado en el mismo.
+\item \textbf{Display LCD}: el sistema cuenta con un LCD 2x16 donde se muestran los estados y transiciones de la ERDYTC, como también las acciones que realiza en el momento el SATDAC.
+\end{itemize}
 
-Luego, para editar los archivos del PCB será necesario el software Proteus 8.12 SP0 Professional.
+Luego, el SATDAC es, como se dijo en la introducción, un sistema cerrado que solo posee una capacidad de interacción con el usuario: la memoria SD donde se almacena el último dato de temperatura medido. Luego, el control del SATDAC se da a través de la ERDYTC.
+\section{Menues:}
+\label{sec:orga65730f}
+Se describirán los distintos menúes que se visualizan en la ERDYTC.
 
-Todos los archivos de software se pueden encontrar en la página oficial de GitHub del proyecto: \url{https://github.com/AugustoRiedinger/tecDig2\_project}.
-\section{Diagramas de circuito}
-\label{sec:org24ba558}
-\subsection{Diagrama general en bloques:}
-\label{sec:orgaff0334}
+\begin{itemize}
+\item \textbf{Pantalla inicial}: menú que se muestra al iniciar el sistema. Indica el último valor de temperatura medido por el SATDAC. Se puede visualizar en la Fig. \ref{fig:pantallaInicial}.
+\end{itemize}
+
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=.9\linewidth]{../../images/diagramaBloques.jpg}
-\caption{\label{fig:diagramaBloques}Diagrama general en bloques}
+\includegraphics[width=.9\linewidth]{../../images/pantallaInicial.png}
+\caption{\label{fig:pantallaInicial}Menú pantalla inicial}
 \end{figure}
+
+\begin{itemize}
+\item \textbf{Pantalla actualización temperatura}: mensaje que se muestra al presionar el \emph{Pulsador 1 - Temperatura}. Indica que el SATDAC se encuentra en proceso de actualizar el valor de temperatura. Se puede visualizar en la Fig. \ref{fig:pantallaTemperatura}.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.9\linewidth]{../../images/pantallaTemperatura.png}
+\caption{\label{fig:pantallaTemperatura}Pantalla actualización temperatura}
+\end{figure}
+
+\begin{itemize}
+\item . \textbf{Pantalla servo posición 1}: mensaje que se muestra al presionar el \emph{Pulsador 2 - Servo posición 1}. Indica que el servomotor del SATDAC se movió 90° con respecto a su posición inicial y por tanto se destrabó la compuerta para acceder al mismo. Se puede visualizar en la Fig. \ref{fig:pantallaServo1}
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.9\linewidth]{../../images/pantallaServo1.png}
+\caption{\label{fig:pantallaServo1}Pantalla servo posición 1}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{Pantalla servo posición 2}: mensaje que se muestra al presionar el \emph{Pulsador 3 - Servo posición 2}. Indica que el servomotor del SATDAC se movió 90° con respecto a su posición final y por tanto se trabó la compuerta para acceder al mismo. Se puede visualizar en la Fig. \ref{fig:pantallaServo2}.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.9\linewidth]{../../images/pantallaServo2.png}
+\caption{\label{fig:pantallaServo2}Pantalla servo posición 2}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{Pantalla SD}: mensaje que se muestra al presionar el \emph{Pulsador 4 - SD}. Indica que el SATDAC se encuentra en el proceso de guardar el último valor de temperatura en la memoria externa SD. Se puede visualizar en la Fig. \ref{fig:pantallaSD}.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.9\linewidth]{../../images/pantallaSD.png}
+\caption{\label{fig:pantallaSD}Pantalla SD}
+\end{figure}
+
+Todos los menúes anteriormente descritos se pueden visualizar durante 5 segundos luego de que aparecen (a exepción de la pantalla inicial, que es el mensaje que se muestra por defecto) para que el usuario tenga tiempo necesario a leer o anotar lo que se ve.
 \end{document}
