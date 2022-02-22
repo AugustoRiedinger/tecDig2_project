@@ -32,4 +32,22 @@ Para comprobar y debugger el código embebido en el sistema será necesario el p
 
 Luego, para editar los archivos del PCB será necesario el software Proteus 8.12 SP0 Professional.
 
-Todos los archivos de software se pueden encontrar en la página oficial de GitHub del proyecto: https://github.com/AugustoRiedinger/tecDig2_project.
+Todos los archivos de software se pueden encontrar en la página oficial de GitHub del proyecto: [[https://github.com/AugustoRiedinger/tecDig2_project]].
+* Diagramas de circuito
+** Diagrama general en bloques:
+#+CAPTION:Diagrama general en bloques
+#+LABEL:fig:diagramaBloques
+[[file:../../images/diagramaBloques.jpg]]
+
+En la Fig. \ref{fig:diagramaBloques} se puede observar el diagrama en bloques general del sistema. El mismo describe gráficamente cada una de las funcionalidades y aplicaciones del sistema.
+** Circuitos esquemáticos y PCD:
+** Descripción de conectores y jumpers:
+Los conectores principales utilizados en el sistema son de alimentación:
+
+ + En la ERDYTC, el conector de alimentación se puede desamblar a partir del transformador que se conecta a la red, no es necesario realizar la desconexión de la STM.
+ + En el SATDAC, el conector de alimentación es recomendable sacarlo directamente de la STM.
+
+Luego, ambos sistemas cuentan en sus respectivas PCB con LEDs de estado para indicar que el sistema está alimentado.
+
+Finalmente, ambos PCB también cuentan con un JUMPER J1 para cambiar el pin de conexión del TX de ambos sistemas. Este pin debe ser dejado abierto a menos que se cambie desde el software la conexión del TX-USART en los respectivos sistemas.
+* Mediciones y ajustes:
