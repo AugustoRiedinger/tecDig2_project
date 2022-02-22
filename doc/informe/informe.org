@@ -55,7 +55,40 @@ El sistema está pensado para ser controlado completamente a partir de la ERDYTC
  + Una vez finalizado, presionar el pulsador 2 para abrir la ocmpuerta del SATDAC.
  + Una vez que se indica que la compuerta fue abierta, es posible acceder al SATDAC y realizar la extracción de la memoria SD.
  + Luego, presionar pulsador 3 para sellar la compuerta; y repetir estos dos últimos pasos una vez que la memoria SD fue utilizada (se extrajeron los datos de la memoria).
+** Menúes:
+Se describirán los distintos menúes que se visualizan en la ERDYTC.
 
+ + *Pantalla inicial*: menú que se muestra al iniciar el sistema. Indica el último valor de temperatura medido por el SATDAC. Se puede visualizar en la Fig. \ref{fig:pantallaInicial}.
+
+#+CAPTION:Menú pantalla inicial
+#+LABEL:fig:pantallaInicial
+[[file:../../images/pantallaInicial.png]]
+
+ + *Pantalla actualización temperatura*: mensaje que se muestra al presionar el /Pulsador 1 - Temperatura/. Indica que el SATDAC se encuentra en proceso de actualizar el valor de temperatura. Se puede visualizar en la Fig. \ref{fig:pantallaTemperatura}.
+
+#+CAPTION:Pantalla actualización temperatura
+#+LABEL:fig:pantallaTemperatura
+[[file:../../images/pantallaTemperatura.png]]
+
+ + . *Pantalla servo posición 1*: mensaje que se muestra al presionar el /Pulsador 2 - Servo posición 1/. Indica que el servomotor del SATDAC se movió 90° con respecto a su posición inicial y por tanto se destrabó la compuerta para acceder al mismo. Se puede visualizar en la Fig. \ref{fig:pantallaServo1}
+
+#+CAPTION:Pantalla servo posición 1
+#+LABEL:fig:pantallaServo1
+[[file:../../images/pantallaServo1.png]]
+
+ + *Pantalla servo posición 2*: mensaje que se muestra al presionar el /Pulsador 3 - Servo posición 2/. Indica que el servomotor del SATDAC se movió 90° con respecto a su posición final y por tanto se trabó la compuerta para acceder al mismo. Se puede visualizar en la Fig. \ref{fig:pantallaServo2}.
+
+#+CAPTION:Pantalla servo posición 2
+#+LABEL:fig:pantallaServo2
+[[file:../../images/pantallaServo2.png]]
+
+ + *Pantalla SD*: mensaje que se muestra al presionar el /Pulsador 4 - SD/. Indica que el SATDAC se encuentra en el proceso de guardar el último valor de temperatura en la memoria externa SD. Se puede visualizar en la Fig. \ref{fig:pantallaSD}.
+
+#+CAPTION:Pantalla SD
+#+LABEL:fig:pantallaSD
+[[file:../../images/pantallaSD.png]]
+
+Todos los menúes anteriormente descritos se pueden visualizar durante 5 segundos luego de que aparecen (a exepción de la pantalla inicial, que es el mensaje que se muestra por defecto) para que el usuario tenga tiempo necesario a leer o anotar lo que se ve.
 ** Mantenimiento:
 Para realizar el mantenimiento de la ERDYTC no se debe realizar ninguna operación especial, basta con desarmar la carcasa de la misma y retirar el microcontrolador de la placa PCB que se encuentra en su interior.
 
@@ -70,7 +103,90 @@ En cambio, para realizar el mantenimiento del SATDAC es necesario tener la ERDYT
 
 Idealmente, también sería inteligente deshacer la conexión entre el SATDAC y la ERDYTC antes de realizar el mantenimiento de un sistema de forma independientemente.
 * Hardware:
+** Estructuras:
+Ambos sistemas se encuentran en estructuras protectoras o carcasas hechas en madera. Las mismas se pueden visualizar en las Fig. \ref{fig:cuboFisico} y \ref{fig:estacionFisico} respectivamente.
+
+#+CAPTION:Carcasa del SATDAC
+#+LABEL:fig:cuboFisico
+[[file:../../images/cuboFisico.png]]
+
+#+CAPTION:Carcasa de la ERDYTC
+#+LABEL:fig:estacionFisico
+[[file:../../images/estacionFisico.png]]
+
+** Diagrama en bloques:
+En la Fig. \ref{fig:diagramaBloques} se puede visualizar el diagrama en bloques completo de ambos sistemas interconectados.
+
+#+CAPTION:Diagrama en bloques de los sistemas
+#+LABEL:fig:diagramaBloques
+[[file:../../images/diagramaBloques.jpg]]
+
+En el mismo se puede observar de forma gráfica las distintas conexiones y funciones de los sistemas descritos en este documento. Se observa que el SATDAC posee como alimentación una batería de 3.7 [V], y la ERDYTC se alimenta a partir de la RED. Además, se denotan los diferentes periféricos utilizados en ambos sistemas.
+** Descripción del circuito ERDYTC:
+En la Fig. \ref{fig:estacionEsquematico} se puede observar el circuito esquemático que representa la ERDYTC.
+
+#+CAPTION:Circuito esquemático de la ERDYTC
+#+LABEL:fig:estacionEsquematico
+[[file:../../images/estacionEsquematico.png]]
+
+En el mismo se describe el conexionado del sistema:
+
+ + Se utilizaron los conectores CN8 y CN9 de la STM32F429ZI para realizar todas las conexiones a través de un poncho.
+ + La conexión del display LCD se realizó con resistencias de pull-up a 5 voltios, y las conexiones a los pines de la STM se dan todas en el conector CN9.
+ + La conexión de los pulsadores se da en forma matricial.
+
+#+CAPTION:ERTDYC PCB
+#+LABEL:fig:estacionPCB
+[[file:../../images/estacionPCB.png]]
+
+Luego, en la Fig. \ref{fig:estacionPCB} se puede observar el circuito impreso o PCB de la ERDYTC. En el mismo se nota claramente que se utilizó el conector de Arduino de la STM para realizar el poncho con la placa.
+
+#+CAPTION:Render 3D del PCD de la ERDYTC
+#+LABEL:fig:estacion3D
+[[file:../../images/estacion3D.png]]
+
+Finalmente, en la Fig. \ref{fig:estacion3D} se puede observar el PCB físico de la ERDYTC.
+** Descripción del circuito SATDAT:
+En la Fig. \ref{fig:cuboEsquematico} se puede observar el diagrama esquemático del SATDAC.
+
+#+CAPTION:Esquemático del SATDAC
+#+LABEL:fig:cuboEsquematico
+[[file:../../images/cuboEsquematico.png]]
+
+En el mismo se puede ver el conexionado del sistema:
+
+ + Se utilizaron los conectores CN8 y CN9 de la STM para realizar el poncho.
+ + Se utilizó un circuito amplificador de protección para el conexionado del sensor de temperatura LM35.
+
+Los puertos UART usados tanto en el SATDA como ERDYTC fueron el PA2 y PA3 respectivamente, y se corresponden con el UART2 en el sistema.
+
+#+CAPTION:SATDAC PCB
+#+LABEL:fig:cuboPCB
+[[file:../../images/cuboPCB.png]]
+
+#+CAPTION:SATDAC 3D
+#+LABEL:fig:cubo3D
+[[file:../../images/cubo3D.png]]
+
+Luego en la Fig. \ref{fig:cuboPCB} se puede observar el PCB del SATDAC, y en la Fig. \ref{fig:cubo3D} el modelo 3D del mismo.
+
 * Software:
+** Código fuente:
 La descripción completa de todo el software se puede visualizar en el siguiente enlace: [[https://github.com/AugustoRiedinger/tecDig2_project/tree/master/code]].
 
 En el mismo, también se pueden descargar y contribuir a todos los archivos tanto del software como del proyecto en general.
+
+En la carpeta /code/ se puede encontrar y editar el código fuente que se carga en ambos sistemas. Notar que el archivo /hardware.h/ describe los pines utilizados para los dos sistemas; el mismo se puede editar fácilmente y a conveniencia que cambiará todas las funciones donde sea utilizado.
+** Lenguaje:
+El lenguaje utilizo en todas las librerías creadas y el código fuente es C, junto con funciones específicas desarrolladas por ST.
+
+C es un lenguaje de programación de propósito general originalmente desarrollado por Dennis Ritchie entre 1969 y 1972 en los Laboratorios Bell,​ como evolución del anterior lenguaje B, a su vez basado en BCPL.
+
+Al igual que B, es un lenguaje orientado a la implementación de sistemas operativos, concretamente Unix. C es apreciado por la eficiencia del código que produce y es el lenguaje de programación más popular para crear softwares de sistemas y aplicaciones.
+
+Se trata de un lenguaje de tipos de datos estáticos, débilmente tipado, de medio nivel, que dispone de las estructuras típicas de los lenguajes de alto nivel pero, a su vez, dispone de construcciones del lenguaje que permiten un control a bajo nivel. Los compiladores suelen ofrecer extensiones al lenguaje que posibilitan mezclar código en ensamblador con código C o acceder directamente a memoria o dispositivos periféricos.
+
+** Entorno de desarrollo:
+Para editar los archivos principalmente se utilizó el software Doom Emacs; luego para debuggear se utilizó Atollic TRUEStudio.
+
+Los programas utilizados tanto para editar como para debuggear son a elección, pero los autores solamente testearon en los mencionados.
