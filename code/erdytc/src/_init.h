@@ -1,8 +1,8 @@
-#ifndef LOCAL_H_
-#define LOCAL_H_
+#ifndef _INIT_H_
+#define _INIT_H_
 
 #include "libs.h"
 
 void INIT_ALL(void);
 
-#endif // LOCAL_H_
+#endif // _INIT_H_
